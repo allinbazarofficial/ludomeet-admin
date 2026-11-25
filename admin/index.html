@@ -267,7 +267,7 @@ async function dash(){
   const [all,neu,agg,pend,paid,banned]=await Promise.all([
    getCountFromServer(U),
    getCountFromServer(query(U,where("createdAt",">=",from))),
-   getAggregateFromServer(U,{coins:sum("coins"),dia:sum("diamonds"),lock:sum("lockedDiamonds"),life:sum("lifetimeDiamonds"),games:sum("gamesPlayed")}),
+   Promise.all(["coins","diamonds","lockedDiamonds","lifetimeDiamonds","gamesPlayed"].map(k=>getAggregateFromServer(U,{v:sum(k)}).then(r=>r.data().v||0).catch(()=>0))).then(([coins,dia,lock,life,games])=>({data:()=>({coins,dia,lock,life,games})})),
    getDocs(query(W,where("status","==","pending"),limit(2000))),
    getDocs(query(W,where("status","==","paid"),limit(5000))),
    getCountFromServer(query(U,where("banned","==",true)))]);
