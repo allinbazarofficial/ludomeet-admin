@@ -96,7 +96,14 @@ const $=s=>document.querySelector(s);
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const toast=t=>{const e=$("#toast");e.textContent=T(t);e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3200)};
-const dt=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"};
+const dt=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{timeZone:"Asia/Dhaka",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"};
+const COUNTRIES=[["AF", "Afghanistan"], ["AL", "Albania"], ["DZ", "Algeria"], ["AS", "American Samoa"], ["AD", "Andorra"], ["AO", "Angola"], ["AI", "Anguilla"], ["AQ", "Antarctica"], ["AG", "Antigua and Barbuda"], ["AR", "Argentina"], ["AM", "Armenia"], ["AW", "Aruba"], ["AU", "Australia"], ["AT", "Austria"], ["AZ", "Azerbaijan"], ["BS", "Bahamas"], ["BH", "Bahrain"], ["BD", "Bangladesh"], ["BB", "Barbados"], ["BY", "Belarus"], ["BE", "Belgium"], ["BZ", "Belize"], ["BJ", "Benin"], ["BM", "Bermuda"], ["BT", "Bhutan"], ["BO", "Bolivia"], ["BQ", "Bonaire, Sint Eustatius and Saba"], ["BA", "Bosnia and Herzegovina"], ["BW", "Botswana"], ["BV", "Bouvet Island"], ["BR", "Brazil"], ["IO", "British Indian Ocean Territory"], ["BN", "Brunei Darussalam"], ["BG", "Bulgaria"], ["BF", "Burkina Faso"], ["BI", "Burundi"], ["CV", "Cabo Verde"], ["KH", "Cambodia"], ["CM", "Cameroon"], ["CA", "Canada"], ["KY", "Cayman Islands"], ["CF", "Central African Republic"], ["TD", "Chad"], ["CL", "Chile"], ["CN", "China"], ["CX", "Christmas Island"], ["CC", "Cocos (Keeling) Islands"], ["CO", "Colombia"], ["KM", "Comoros"], ["CG", "Congo"], ["CD", "Congo, The Democratic Republic of the"], ["CK", "Cook Islands"], ["CR", "Costa Rica"], ["HR", "Croatia"], ["CU", "Cuba"], ["CW", "Curaçao"], ["CY", "Cyprus"], ["CZ", "Czechia"], ["CI", "Côte d'Ivoire"], ["DK", "Denmark"], ["DJ", "Djibouti"], ["DM", "Dominica"], ["DO", "Dominican Republic"], ["EC", "Ecuador"], ["EG", "Egypt"], ["SV", "El Salvador"], ["GQ", "Equatorial Guinea"], ["ER", "Eritrea"], ["EE", "Estonia"], ["SZ", "Eswatini"], ["ET", "Ethiopia"], ["FK", "Falkland Islands (Malvinas)"], ["FO", "Faroe Islands"], ["FJ", "Fiji"], ["FI", "Finland"], ["FR", "France"], ["GF", "French Guiana"], ["PF", "French Polynesia"], ["TF", "French Southern Territories"], ["GA", "Gabon"], ["GM", "Gambia"], ["GE", "Georgia"], ["DE", "Germany"], ["GH", "Ghana"], ["GI", "Gibraltar"], ["GR", "Greece"], ["GL", "Greenland"], ["GD", "Grenada"], ["GP", "Guadeloupe"], ["GU", "Guam"], ["GT", "Guatemala"], ["GG", "Guernsey"], ["GN", "Guinea"], ["GW", "Guinea-Bissau"], ["GY", "Guyana"], ["HT", "Haiti"], ["HM", "Heard Island and McDonald Islands"], ["VA", "Holy See (Vatican City State)"], ["HN", "Honduras"], ["HK", "Hong Kong"], ["HU", "Hungary"], ["IS", "Iceland"], ["IN", "India"], ["ID", "Indonesia"], ["IR", "Iran"], ["IQ", "Iraq"], ["IE", "Ireland"], ["IM", "Isle of Man"], ["IL", "Israel"], ["IT", "Italy"], ["JM", "Jamaica"], ["JP", "Japan"], ["JE", "Jersey"], ["JO", "Jordan"], ["KZ", "Kazakhstan"], ["KE", "Kenya"], ["KI", "Kiribati"], ["KW", "Kuwait"], ["KG", "Kyrgyzstan"], ["LA", "Laos"], ["LV", "Latvia"], ["LB", "Lebanon"], ["LS", "Lesotho"], ["LR", "Liberia"], ["LY", "Libya"], ["LI", "Liechtenstein"], ["LT", "Lithuania"], ["LU", "Luxembourg"], ["MO", "Macao"], ["MG", "Madagascar"], ["MW", "Malawi"], ["MY", "Malaysia"], ["MV", "Maldives"], ["ML", "Mali"], ["MT", "Malta"], ["MH", "Marshall Islands"], ["MQ", "Martinique"], ["MR", "Mauritania"], ["MU", "Mauritius"], ["YT", "Mayotte"], ["MX", "Mexico"], ["FM", "Micronesia, Federated States of"], ["MD", "Moldova"], ["MC", "Monaco"], ["MN", "Mongolia"], ["ME", "Montenegro"], ["MS", "Montserrat"], ["MA", "Morocco"], ["MZ", "Mozambique"], ["MM", "Myanmar"], ["NA", "Namibia"], ["NR", "Nauru"], ["NP", "Nepal"], ["NL", "Netherlands"], ["NC", "New Caledonia"], ["NZ", "New Zealand"], ["NI", "Nicaragua"], ["NE", "Niger"], ["NG", "Nigeria"], ["NU", "Niue"], ["NF", "Norfolk Island"], ["KP", "North Korea"], ["MK", "North Macedonia"], ["MP", "Northern Mariana Islands"], ["NO", "Norway"], ["OM", "Oman"], ["PK", "Pakistan"], ["PW", "Palau"], ["PS", "Palestine, State of"], ["PA", "Panama"], ["PG", "Papua New Guinea"], ["PY", "Paraguay"], ["PE", "Peru"], ["PH", "Philippines"], ["PN", "Pitcairn"], ["PL", "Poland"], ["PT", "Portugal"], ["PR", "Puerto Rico"], ["QA", "Qatar"], ["RO", "Romania"], ["RU", "Russian Federation"], ["RW", "Rwanda"], ["RE", "Réunion"], ["BL", "Saint Barthélemy"], ["SH", "Saint Helena, Ascension and Tristan da Cunha"], ["KN", "Saint Kitts and Nevis"], ["LC", "Saint Lucia"], ["MF", "Saint Martin (French part)"], ["PM", "Saint Pierre and Miquelon"], ["VC", "Saint Vincent and the Grenadines"], ["WS", "Samoa"], ["SM", "San Marino"], ["ST", "Sao Tome and Principe"], ["SA", "Saudi Arabia"], ["SN", "Senegal"], ["RS", "Serbia"], ["SC", "Seychelles"], ["SL", "Sierra Leone"], ["SG", "Singapore"], ["SX", "Sint Maarten (Dutch part)"], ["SK", "Slovakia"], ["SI", "Slovenia"], ["SB", "Solomon Islands"], ["SO", "Somalia"], ["ZA", "South Africa"], ["GS", "South Georgia and the South Sandwich Islands"], ["KR", "South Korea"], ["SS", "South Sudan"], ["ES", "Spain"], ["LK", "Sri Lanka"], ["SD", "Sudan"], ["SR", "Suriname"], ["SJ", "Svalbard and Jan Mayen"], ["SE", "Sweden"], ["CH", "Switzerland"], ["SY", "Syria"], ["TW", "Taiwan"], ["TJ", "Tajikistan"], ["TZ", "Tanzania"], ["TH", "Thailand"], ["TL", "Timor-Leste"], ["TG", "Togo"], ["TK", "Tokelau"], ["TO", "Tonga"], ["TT", "Trinidad and Tobago"], ["TN", "Tunisia"], ["TM", "Turkmenistan"], ["TC", "Turks and Caicos Islands"], ["TV", "Tuvalu"], ["TR", "Türkiye"], ["UG", "Uganda"], ["UA", "Ukraine"], ["AE", "United Arab Emirates"], ["GB", "United Kingdom"], ["US", "United States"], ["UM", "United States Minor Outlying Islands"], ["UY", "Uruguay"], ["UZ", "Uzbekistan"], ["VU", "Vanuatu"], ["VE", "Venezuela"], ["VN", "Vietnam"], ["VG", "Virgin Islands, British"], ["VI", "Virgin Islands, U.S."], ["WF", "Wallis and Futuna"], ["EH", "Western Sahara"], ["YE", "Yemen"], ["ZM", "Zambia"], ["ZW", "Zimbabwe"], ["AX", "Åland Islands"]];
+const flag=c=>c&&c.length===2?String.fromCodePoint(...[...c.toUpperCase()].map(x=>127397+x.charCodeAt(0))):"";
+const cname=c=>(COUNTRIES.find(x=>x[0]===c)||[c,c||"—"])[1];
+const BD_MS=6*3600000;
+/* Start of the Bangladesh day (12 midnight BD) that is `back` days ago. */
+const bdDayStart=(back=0)=>{const b=new Date(Date.now()+BD_MS);return new Date(Date.UTC(b.getUTCFullYear(),b.getUTCMonth(),b.getUTCDate()-back)-BD_MS)};
+const ago=v=>{const d=v?.toDate?v.toDate():null;if(!d)return"";const m=Math.floor((Date.now()-d.getTime())/60000);return m<60?`${m} মিনিট আগে`:(m<1440?`${Math.floor(m/60)} ঘণ্টা ${m%60} মিনিট আগে`:`${Math.floor(m/1440)} দিন আগে`)};
 const VIPS=["111111", "222222", "333333", "444444", "555555", "666666", "777777", "888888", "999999", "123456", "234567", "345678", "456789", "654321", "765432", "876543", "987654", "100000", "200000", "300000", "400000", "500000", "600000", "700000", "800000", "900000", "121212", "131313", "151515", "181818", "191919", "202020", "232323", "525252", "585858", "686868", "520520", "521521", "168168", "888999", "666888", "999888", "100100", "200200", "500500", "123123", "112233", "778899", "808080", "909090"];
 const ROLES=[["bd","BD"],["admin","Admin"],["superAdmin","Super Admin"],["primarySeller","Primary Seller"],["normalSeller","Normal Seller"],["beginnerSeller","Beginner Seller"],["coinSeller","Coin Seller"],["payroll","Payroll / Portal"],["seniorSeller","Senior Coin Seller"],["superSeller","Super Seller"],["management","Management"]];
 const vipOn=u=>!!(u&&u.vipId&&u.vipUntil&&u.vipUntil.toMillis()>Date.now());
@@ -107,11 +114,41 @@ const DUR=[["3m","৩ মাস",3],["6m","৬ মাস",6],["1y","১ বছ�
 const addMonths=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x};
 const syncProfile=(b,uid,fields)=>b.set(doc(db,"profiles",uid),fields,{merge:true});
 const lvl=u=>Math.max(1,Math.min(200,Number(u?.level||1)));
-const day=v=>{const d=v?.toDate?v.toDate():v;return d?d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"—"};
+const day=v=>{const d=v?.toDate?v.toDate():v;return d?d.toLocaleDateString("en-GB",{timeZone:"Asia/Dhaka",day:"2-digit",month:"short",year:"numeric"}):"—"};
 async function log(action,target,details){try{await addDoc(collection(db,"adminLogs"),{action,target,details,by:auth.currentUser.email,at:serverTimestamp()})}catch(e){}}
 
 // ---------- Language (বাংলা | EN) ----------
 const EN={
+"পার্টনার ডিপোজিট":"Partner deposits",
+"ডিপোজিট সেটিং":"Deposit settings",
+"মেসেজ":"Messages",
+"রিপোর্ট":"Reports",
+"USDT ঠিকানা":"USDT address",
+"USDT নেটওয়ার্ক":"USDT network",
+"Binance নাম":"Binance name",
+"কোনো ডিপোজিট নেই":"No deposits",
+"কোনো রিপোর্ট নেই":"No reports",
+"কোনো চ্যাট নেই":"No chats",
+"খুলুন":"Open",
+"নতুন":"New",
+"সমাধান হয়েছে":"Resolved",
+"সমাধান":"Resolve",
+"যে রিপোর্ট করেছে":"Reported by",
+"যার বিরুদ্ধে":"Reported user",
+"স্ক্রিনশট":"Screenshots",
+"কার সাথে":"With",
+"মোট মেসেজ":"Messages",
+"শেষ কথা":"Last message",
+"চ্যাট":"Chat",
+"পদ্ধতি":"Method",
+"দেশ বাছাই করুন":"Choose country",
+"💬 মেসেজ দেখুন":"\ud83d\udcac View messages",
+"সবার জন্য মুছে ফেলা হয়েছে":"Deleted for everyone",
+"নিজের জন্য মুছেছে":"Deleted for self",
+"প্রতিদিনের হিসাব শুরু হয় বাংলাদেশ সময় রাত ১২টায়।":"Daily totals start at 12 midnight Bangladesh time.",
+"পার্টনার ডিপোজিট (নির্বাচিত সময়)":"Partner deposits (selected period)",
+"পার্টনার ডিপোজিট (মোট)":"Partner deposits (total)",
+"২৪ ঘণ্টার মধ্যে নিশ্চিত করতে হবে। ২৪ ঘণ্টা পার হলে সময় লাল দেখাবে।":"Confirm within 24 hours. Time turns red after 24 hours.",
 "থেকে ইউজার খুলে \"কয়েন সেলার বানান\" চাপুন। সেলারকে কয়েন দিতে নিচের তালিকা থেকে ম্যানেজ চাপুন।":"open the user and press \"Make coin seller\". To give a seller coins, press Manage in the list below.",
 "এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।":"This section opens with the online update (voice rooms, gifts, online games).",
 "সব ইউজার অ্যাপ খুললে এই বার্তা দেখবে (অ্যাপের পরের আপডেট থেকে)।":"Every user will see this message when they open the app (from the next app update).",
@@ -313,7 +350,7 @@ setLang(LANG);
 const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
  ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
- ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
+ ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
  ["APP DATA",[["rooms","🎙️","ভয়েস রুম","শীঘ্রই"],["gifts","🎁","গিফট","শীঘ্রই"],["games","🎲","গেম ডেটা","শীঘ্রই"]]],
 ];
 let current="dash";
@@ -330,18 +367,20 @@ $("#modal").onclick=e=>{if(e.target.id==="modal")closeM()};
 
 // ---------- Dashboard ----------
 let range="today";
-function rangeStart(){const n=new Date();const d=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()));if(range==="yesterday")d.setUTCDate(d.getUTCDate()-1);if(range==="week")d.setUTCDate(d.getUTCDate()-6);if(range==="month")d.setUTCDate(d.getUTCDate()-29);return d}
+function rangeStart(){return bdDayStart({yesterday:1,week:6,month:29}[range]||0)}
+function rangeEnd(){return range==="yesterday"?bdDayStart(0):new Date(Date.now()+60000)}
 async function dash(){
- view(`<div class="card"><div class="ttl" style="color:var(--accent)">UTC RESET</div><div class="muted" style="margin-bottom:12px">প্রতিদিনের হিসাব শুরু হয় 00:00 UTC (বাংলাদেশ সময় সকাল ৬টা)।</div>
+ view(`<div class="card"><div class="ttl" style="color:var(--accent)">BANGLADESH TIME</div><div class="muted" style="margin-bottom:12px">প্রতিদিনের হিসাব শুরু হয় বাংলাদেশ সময় রাত ১২টায়।</div>
  <div class="chips">${[["today","আজ"],["yesterday","গতকাল"],["week","এই সপ্তাহ"],["month","গত ৩০ দিন"]].map(([k,l])=>`<button class="chip ${k===range?"act":""}" data-r="${k}">${l}</button>`).join("")}<button class="chip" id="rf">⟳ রিফ্রেশ</button></div></div>
  <div id="dstats"><div class="card empty">লোড হচ্ছে…</div></div>`);
  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;dash()});$("#rf").onclick=dash;
  try{
   const U=collection(db,"users"),W=collection(db,"withdrawals"),from=Timestamp.fromDate(rangeStart());
+  const depP=getDocs(query(collection(db,"deposits"),where("status","==","approved"),limit(3000))).then(q=>{const a=rangeStart().getTime(),b=rangeEnd().getTime();let all=0,sel=0;q.docs.forEach(d=>{const x=d.data(),t=x.decidedAt?.toMillis?.()||0,v=Number(x.amount)||0;all+=v;if(t>=a&&t<b)sel+=v});return{all,sel}}).catch(()=>({all:0,sel:0}));
   const revP=getAggregateFromServer(collection(db,"revenue"),{v:sum("amount")}).then(r=>r.data().v||0).catch(()=>0);
   const [all,neu,agg,pend,paid,banned]=await Promise.all([
    getCountFromServer(U),
-   getCountFromServer(query(U,where("createdAt",">=",from))),
+   getCountFromServer(query(U,where("createdAt",">=",from),where("createdAt","<",Timestamp.fromDate(rangeEnd())))),
    Promise.all(["coins","diamonds","lockedDiamonds","lifetimeDiamonds","gamesPlayed"].map(k=>getAggregateFromServer(U,{v:sum(k)}).then(r=>r.data().v||0).catch(()=>0))).then(([coins,dia,lock,life,games])=>({data:()=>({coins,dia,lock,life,games})})),
    getDocs(query(W,where("status","==","pending"),limit(2000))),
    getDocs(query(W,where("status","==","paid"),limit(5000))),
@@ -354,7 +393,7 @@ async function dash(){
   <div class="card"><div class="ttl">USERS</div><div class="grid">${st("মোট ইউজার",fmt(all.data().count),1)}${st("নতুন ইউজার (নির্বাচিত সময়)",fmt(neu.data().count))}${st("ব্যান করা",fmt(banned.data().count))}${st("মোট খেলা গেম",fmt(a.games))}</div></div>
   <div class="card"><div class="ttl">BANK · CIRCULATION</div><div class="grid">${st("কয়েন (সবার কাছে)",fmt(a.coins),1)}${st("ডায়মন্ড (Available)",fmt(a.dia))}${st("ডায়মন্ড (Locked)",fmt(a.lock))}${st("Lifetime ডায়মন্ড",fmt(a.life))}</div></div>
   <div class="card"><div class="ttl">PAYROLL</div><div class="grid">${st("পেন্ডিং অর্ডার",fmt(pc.data().count),1)}${st("পেন্ডিং পরিমাণ","$"+(p.u||0).toFixed(2))}${st("পরিশোধিত অর্ডার",fmt(pdc.data().count))}${st("মোট পরিশোধ","$"+(pd.u||0).toFixed(2))}</div></div>
-  <div class="card"><div class="ttl">PLATFORM INCOME</div><div class="grid">${st("নাম বদলের ফি (কয়েন)",fmt(await revP),1)}</div></div>
+  <div class="card"><div class="ttl">PLATFORM INCOME</div><div class="grid">${st("নাম বদলের ফি (কয়েন)",fmt(await revP),1)}${(dp=>st("পার্টনার ডিপোজিট (নির্বাচিত সময়)","$"+fmt(dp.sel))+st("পার্টনার ডিপোজিট (মোট)","$"+fmt(dp.all)))(await depP)}</div></div>
   <div class="card"><div class="ttl">ROOMS</div><div class="grid">${st("Active Audio Rooms","—")}${st("আজকের মোট রুম","—")}</div><div class="muted" style="margin-top:10px">ভয়েস রুম চালু হলে এখানে হিসাব দেখাবে।</div></div>`;
  }catch(e){$("#dstats").innerHTML=`<div class="card empty">লোড করা যায়নি: ${esc(e.message)}</div>`}
 }
@@ -587,7 +626,7 @@ async function userProfile(uid){
    <img class="av" style="width:72px;height:72px" src="${u.photoData?"data:image/jpeg;base64,"+u.photoData:PRIVATE_LOGO}">
    <div style="flex:1"><h2 style="margin:0">${esc(u.name)}</h2><div class="muted">ID ${esc(shownId(u))}${vipOn(u)?` · VIP (আসল ${esc(ownId(u))})`:""} · ${esc(u.email||"")}</div>
    <div style="margin-top:6px"><span class="badge lv">Lv ${lvl(u)}</span> ${(u.roles||[]).map(r=>`<span class="badge role">${esc((ROLES.find(x=>x[0]===r)||[r,r])[1])}</span>`).join(" ")} ${u.banned?'<span class="badge ban">BANNED</span>':""}</div></div>
-   <button class="btn" id="back">← ফিরে যান</button></div>
+   <button class="btn o" id="pmsg">💬 মেসেজ দেখুন</button> <button class="btn" id="back">← ফিরে যান</button></div>
    <div class="grid" style="margin-top:14px;grid-template-columns:repeat(4,1fr)">
     <div class="stat"><span>Followers</span><b>${fo?fmt(fo.data().count):"—"}</b></div><div class="stat"><span>Following</span><b>${fi?fmt(fi.data().count):"—"}</b></div>
     <div class="stat"><span>কয়েন</span><b>${fmt(u.coins)}</b></div><div class="stat"><span>ডায়মন্ড</span><b>${fmt(u.diamonds)}</b></div></div></div>
@@ -598,10 +637,12 @@ async function userProfile(uid){
    <label class="f">বায়ো</label><textarea class="inp" id="pbio" rows="3" style="width:100%">${esc(u.bio||"")}</textarea>
    <div class="row"><div style="flex:1"><label class="f">জন্মতারিখ (বয়স ${age})</label><input class="inp" id="pbd" type="date" value="${bdStr}" style="width:100%"></div>
    <div style="flex:1"><label class="f">লিঙ্গ</label><select class="inp" id="pg" style="width:100%"><option value="">—</option><option value="male" ${u.gender==="male"?"selected":""}>Male</option><option value="female" ${u.gender==="female"?"selected":""}>Female</option></select></div>
-   <div style="flex:1"><label class="f">দেশ (২ অক্ষরের কোড, যেমন BD)</label><input class="inp" id="pc" maxlength="2" value="${esc(u.country||"")}" style="width:100%;text-transform:uppercase"></div></div>
+   <div style="flex:1"><label class="f">দেশ</label><input type="hidden" id="pc" value="${esc(u.country||"")}"><button class="inp" id="pcb" type="button" style="width:100%;text-align:left;cursor:pointer">${u.country?flag(u.country)+" "+esc(cname(u.country)):"— দেশ বাছাই করুন —"} ▾</button></div></div>
    <button class="btn o" id="psv" style="margin-top:14px">সেভ করুন</button></div>
   <div class="card"><div class="ttl">নাম বদলের ইতিহাস</div>${hist.length?`<table><tr><th>সময়</th><th>আগের নাম</th><th>নতুন নাম</th><th>ফি</th><th>কে</th></tr>${hist.map(h=>`<tr><td>${dt(h.at)}</td><td>${esc(h.from)}</td><td><b>${esc(h.to)}</b></td><td>${h.fee?fmt(h.fee)+" কয়েন":"ফ্রি"}</td><td>${h.by==="admin"?"অ্যাডমিন":"ইউজার"}</td></tr>`).join("")}</table>`:'<div class="muted">এখনো নাম বদল হয়নি</div>'}</div>`);
   $("#back").onclick=()=>go(current);
+  $("#pmsg").onclick=()=>{current="chats";drawNav();$("#ptitle").textContent="মেসেজ";chats(shownId(u))};
+  $("#pcb").onclick=()=>pickCountry($("#pc").value,c=>{$("#pc").value=c;$("#pcb").textContent=flag(c)+" "+cname(c)+" ▾"});
   document.querySelectorAll("[data-big]").forEach(im=>im.onclick=()=>{const p=photos[+im.dataset.big];lightbox("data:image/jpeg;base64,"+(p.data||p.thumb))});
   const savePhotos=async(keep,removed)=>{const b=writeBatch(db);let thumb=null;if(keep.length){const f=photos.find(p=>p.id===keep[0]);thumb=f?.thumb||null}
    const fields={photos:keep,photoData:thumb};b.update(doc(db,"users",uid),fields);syncProfile(b,uid,fields);removed.forEach(id=>b.delete(doc(db,"profiles",uid,"photos",id)));await b.commit()};
@@ -646,8 +687,129 @@ async function apps(){
  }catch(e){$("#alist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 
+// ---------- Bangladesh clock ----------
+(function(){const h=$("#ptitle").parentElement;const el=document.createElement("div");el.id="bdclock";el.style.cssText="font-size:13px;margin-top:4px;font-weight:700;opacity:.75";h.appendChild(el);
+ const p=n=>String(n).padStart(2,"0");
+ const tick=()=>{const now=new Date();const t=now.toLocaleString("en-GB",{timeZone:"Asia/Dhaka",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  const s=Math.max(0,Math.floor((bdDayStart(-1).getTime()-now.getTime())/1000));const left=`${p(Math.floor(s/3600))}:${p(Math.floor(s/60)%60)}:${p(s%60)}`;
+  el.textContent=LANG==="en"?`🇧🇩 Bangladesh time ${t} · day ends in ${left}`:`🇧🇩 বাংলাদেশ সময় ${t} · দিন শেষ হতে বাকি ${left}`};
+ tick();setInterval(tick,1000)})();
+
+// ---------- Country picker ----------
+function pickCountry(cur,cb){
+ modal(`<div class="ttl">দেশ বাছাই করুন</div><input class="inp" id="csq" placeholder="দেশের নাম বা কোড লিখুন" style="width:100%;margin:10px 0"><div id="cslist" style="max-height:60vh;overflow:auto"></div><div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn" id="mclose">বন্ধ</button></div>`);
+ const draw=q=>{q=(q||"").trim().toLowerCase();$("#cslist").innerHTML=COUNTRIES.filter(([c,n])=>!q||n.toLowerCase().includes(q)||c.toLowerCase()===q).map(([c,n])=>`<button class="nav ${c===cur?"act":""}" data-cc="${c}" style="width:100%;text-align:left">${flag(c)} ${esc(n)} <span class="muted">(${c})</span></button>`).join("")||'<div class="empty">কিছু পাওয়া যায়নি</div>';
+  document.querySelectorAll("[data-cc]").forEach(b=>b.onclick=()=>{closeM();cb(b.dataset.cc)})};
+ draw("");$("#csq").oninput=e=>draw(e.target.value);$("#csq").focus();$("#mclose").onclick=closeM;
+}
+
+// ---------- Partner deposit settings ----------
+async function depset(){
+ view(`<div class="card" style="max-width:640px"><div class="ttl">ডিপোজিট সেটিং</div><div class="muted">অ্যাপের ডিপোজিট পেজে এই তথ্যগুলো দেখায়। বদলালে সাথে সাথে অ্যাপে বদলে যাবে।</div>
+  <label class="f">USDT ঠিকানা</label><input class="inp" id="dsa" style="width:100%">
+  <label class="f">USDT নেটওয়ার্ক</label><input class="inp" id="dsn" style="width:100%">
+  <label class="f">Binance ID (UID)</label><input class="inp" id="dsb" style="width:100%">
+  <label class="f">Binance নাম</label><input class="inp" id="dsm" style="width:100%">
+  <button class="btn o" id="dss" style="margin-top:14px">সেভ করুন</button></div>`);
+ const D={usdtAddress:"0xd94cd3f3c29875f89bbe291b45ceeac5f889348e",usdtNetwork:"BSC (BNB Smart Chain) BEP20",binanceId:"978923854",binanceName:"LudoMeet"};
+ try{const s=(await getDoc(doc(db,"config","deposit"))).data()||{};Object.assign(D,Object.fromEntries(Object.entries(s).filter(([k,v])=>typeof v==="string"&&v)))}catch(e){}
+ $("#dsa").value=D.usdtAddress;$("#dsn").value=D.usdtNetwork;$("#dsb").value=D.binanceId;$("#dsm").value=D.binanceName;
+ $("#dss").onclick=async()=>{const f={usdtAddress:$("#dsa").value.trim(),usdtNetwork:$("#dsn").value.trim(),binanceId:$("#dsb").value.trim(),binanceName:$("#dsm").value.trim()};
+  if(!f.usdtAddress||!f.usdtNetwork||!f.binanceId){toast("সব ঘর পূরণ করুন");return}if(!confirm("ডিপোজিট তথ্য বদলাবেন? অ্যাপে সাথে সাথে নতুন তথ্য দেখাবে।"))return;
+  try{await setDoc(doc(db,"config","deposit"),{...f,updatedAt:serverTimestamp()},{merge:true});await log("deposit-settings","config",f);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
+}
+
+// ---------- Partner deposits ----------
+let dtab="pending";
+async function deposits(){
+ view(`<div class="card"><div class="chips">${[["pending","পেন্ডিং"],["approved","অনুমোদিত"],["rejected","বাতিল"]].map(([k,l])=>`<button class="chip ${k===dtab?"act":""}" data-t="${k}">${l}</button>`).join("")}<button class="chip" id="rf">⟳ রিফ্রেশ</button></div><div class="muted" style="margin-top:8px">২৪ ঘণ্টার মধ্যে নিশ্চিত করতে হবে। ২৪ ঘণ্টা পার হলে সময় লাল দেখাবে।</div></div><div class="card"><div class="tw" id="dlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{dtab=b.dataset.t;deposits()});$("#rf").onclick=deposits;
+ try{const s=await getDocs(query(collection(db,"deposits"),where("status","==",dtab),limit(300)));
+  const rows=s.docs.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0));
+  if(!rows.length){$("#dlist").innerHTML=`<div class="empty">কোনো ডিপোজিট নেই</div>`;return}
+  $("#dlist").innerHTML=`<table><tr><th>সময়</th><th>ইউজার</th><th>পদ</th><th>পরিমাণ</th><th>পদ্ধতি</th><th>প্রমাণ</th><th></th></tr>${rows.map(d=>{const a=d.data();const late=a.status==="pending"&&a.at&&(Date.now()-a.at.toMillis())>86400000;
+   return `<tr><td>${dt(a.at)}<div style="font-size:12px;font-weight:800;color:${late?"#ff3d5a":"inherit"}">${a.status==="pending"?ago(a.at):(a.decidedAt?"✓ "+dt(a.decidedAt):"")}</div></td>
+   <td><b>${esc(a.name)}</b><div class="muted" style="font-size:12px">ID ${esc(a.userId)} · ${flag(a.country)} ${esc(a.country||"")}</div></td>
+   <td><b>${esc(a.roleName)}</b></td><td><b>$${fmt(a.amount)}</b><div class="muted" style="font-size:12px">→ ${fmt(a.coins)} কয়েন</div></td>
+   <td><b>${esc(a.method)}</b>${a.network?`<div class="muted" style="font-size:12px">${esc(a.network)}</div>`:""}<div class="muted" style="font-size:11px;word-break:break-all;max-width:160px">${esc(a.payTo||"")}</div></td>
+   <td>${a.proof?`<img data-proof="${d.id}" src="data:image/jpeg;base64,${a.proof}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:zoom-in">`:"—"}</td>
+   <td>${a.status==="pending"?`<button class="btn sm g" data-ok="${d.id}">অনুমোদন</button> <button class="btn sm r" data-no="${d.id}">বাতিল</button>`:(a.reason?`<div class="muted" style="font-size:12px">${esc(a.reason)}</div>`:"")} <button class="btn sm" data-up="${a.uid}">প্রোফাইল</button></td></tr>`}).join("")}</table>`;
+  document.querySelectorAll("[data-proof]").forEach(i=>i.onclick=()=>lightbox(i.src));
+  document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
+  const decide=async(id,ok)=>{const a=rows.find(r=>r.id===id).data();let reason="";
+   if(ok){if(!confirm(`${a.name}-এর $${fmt(a.amount)} ডিপোজিট অনুমোদন করবেন?\nসে "${a.roleName}" পদ আর ${fmt(a.coins)} কয়েন পাবে।`))return}
+   else{reason=prompt("বাতিলের কারণ লিখুন (ইউজার দেখবে):","Payment not found");if(reason===null)return}
+   try{const b=writeBatch(db);b.update(doc(db,"deposits",id),{status:ok?"approved":"rejected",decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email,...(ok?{}:{reason})});
+    if(ok){const us=await getDoc(doc(db,"users",a.uid));const r=new Set(us.data()?.roles||[]);r.add(a.role);const roles=[...r];
+     b.update(doc(db,"users",a.uid),{roles,coins:increment(Number(a.coins)||0),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles})}
+    b.set(doc(collection(db,"users",a.uid,"inbox")),{title:ok?"Deposit approved":"Deposit rejected",body:ok?`Your $${a.amount} deposit was approved. You are now ${a.roleName} and ${fmt(a.coins)} coins were added to your account.`:`Your $${a.amount} deposit for ${a.roleName} was not approved. Reason: ${reason}`,kind:"deposit",at:serverTimestamp()});
+    await b.commit();await log(ok?"deposit-approve":"deposit-reject",a.userId,{role:a.role,amount:a.amount,coins:a.coins,reason});toast("হয়ে গেছে ✓");deposits()}catch(e){toast("ব্যর্থ: "+e.message)}};
+  document.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>decide(b.dataset.ok,true));
+  document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>decide(b.dataset.no,false));
+ }catch(e){$("#dlist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+
+// ---------- Messages (private chats) ----------
+const pcache={};
+async function prof(uid){if(pcache[uid])return pcache[uid];try{const d=(await getDoc(doc(db,"profiles",uid))).data()||{};pcache[uid]=d;return d}catch(e){return{}}}
+async function chats(q0){
+ view(`<div class="card"><div class="row"><input class="inp" id="cq" placeholder="প্লেয়ার আইডি বা Gmail লিখুন" style="flex:1"><button class="btn o" id="cgo">খুঁজুন</button></div><div class="muted" style="margin-top:8px">আইডি দিলে সে কার কার সাথে কত মেসেজ করেছে দেখাবে। কোনো চ্যাটে "খুলুন" চাপলে পুরো কথোপকথন দেখা যাবে।</div></div><div id="cres"></div>`);
+ const run=async()=>{const q=$("#cq").value.trim();if(!q)return;$("#cres").innerHTML=`<div class="card empty">লোড হচ্ছে…</div>`;
+  try{const us=await findUsers(q);if(!us.length){$("#cres").innerHTML=`<div class="card empty">ইউজার পাওয়া যায়নি</div>`;return}
+   const uid=us[0].id,u=us[0].data();
+   const cs=(await getDocs(query(collection(db,"chats"),where("members","array-contains",uid),limit(300)))).docs.sort((a,b)=>(b.data().updatedAt?.seconds||0)-(a.data().updatedAt?.seconds||0));
+   const rows=await Promise.all(cs.map(async c=>{const other=(c.data().members||[]).find(m=>m!==uid)||"";const [p,n]=await Promise.all([prof(other),getCountFromServer(collection(db,"chats",c.id,"messages")).then(r=>r.data().count).catch(()=>"—")]);return{id:c.id,other,p,n,at:c.data().updatedAt}}));
+   $("#cres").innerHTML=`<div class="card"><div class="row" style="align-items:center"><img class="av" src="${u.photoData?"data:image/jpeg;base64,"+u.photoData:PRIVATE_LOGO}"><div style="flex:1"><b>${esc(u.name)}</b><div class="muted">ID ${esc(shownId(u))} · মোট চ্যাট ${rows.length}</div></div><button class="btn sm" id="cup">প্রোফাইল</button></div></div>
+    <div class="card"><div class="tw">${rows.length?`<table><tr><th>কার সাথে</th><th>মোট মেসেজ</th><th>শেষ কথা</th><th></th></tr>${rows.map(r=>`<tr><td><b>${esc(r.p.name||"—")}</b><div class="muted" style="font-size:12px">ID ${esc((r.p.vipId&&r.p.vipUntil&&r.p.vipUntil.toMillis()>Date.now())?r.p.vipId:(r.p.userId||"—"))}</div></td><td><b>${fmt(r.n)}</b></td><td>${dt(r.at)}</td><td><button class="btn sm o" data-open="${r.id}">খুলুন</button></td></tr>`).join("")}</table>`:'<div class="empty">কোনো চ্যাট নেই</div>'}</div></div>`;
+   $("#cup").onclick=()=>userProfile(uid);
+   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openChat(b.dataset.open,uid));
+  }catch(e){$("#cres").innerHTML=`<div class="card empty">${esc(e.message)}</div>`}};
+ $("#cgo").onclick=run;$("#cq").onkeydown=e=>{if(e.key==="Enter")run()};
+ if(q0){$("#cq").value=q0;run()}
+}
+async function openChat(chatId,leftUid){
+ const [a,b]=chatId.split("_");leftUid=leftUid||a;const rightUid=leftUid===a?b:a;
+ modal(`<div class="empty">লোড হচ্ছে…</div>`);
+ try{const [pl,pr,ms]=await Promise.all([prof(leftUid),prof(rightUid),getDocs(query(collection(db,"chats",chatId,"messages"),orderBy("at","desc"),limit(500)))]);
+  const list=ms.docs.map(d=>d.data()).reverse();
+  const body=m=>m.type==="image"&&m.data?`<img src="data:image/jpeg;base64,${m.data}" style="max-width:220px;border-radius:10px;cursor:zoom-in" data-zoom>`:(m.type==="voice"&&m.data?`<audio controls preload="none" src="data:audio/mp4;base64,${m.data}" style="max-width:240px"></audio> <span class="muted" style="font-size:11px">${m.dur||""}s</span>`:esc(m.text));
+  $("#mbody").innerHTML=`<div class="row" style="align-items:center;margin-bottom:10px"><div style="flex:1"><b>${esc(pl.name||"—")}</b> ↔ <b>${esc(pr.name||"—")}</b><div class="muted" style="font-size:12px">মোট ${list.length} মেসেজ (শেষ ৫০০টি)</div></div><button class="btn" id="mclose">বন্ধ</button></div>
+   <div style="max-height:65vh;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:6px">${list.map(m=>{const mine=m.from===rightUid;return `<div style="align-self:${mine?"flex-end":"flex-start"};max-width:80%;background:${mine?"#6c3bff":"#33197a"};color:#fff;padding:8px 11px;border-radius:14px">
+    <div style="font-size:11px;opacity:.7;margin-bottom:3px">${esc((mine?pr:pl).name||"")} · ${dt(m.at)}</div>${body(m)}
+    ${m.deletedForAll?'<div style="margin-top:4px"><span class="badge ban">সবার জন্য মুছে ফেলা হয়েছে</span></div>':""}${(m.deletedFor||[]).length?'<div style="margin-top:4px"><span class="badge">নিজের জন্য মুছেছে</span></div>':""}</div>`}).join("")||'<div class="empty">কোনো মেসেজ নেই</div>'}</div>`;
+  $("#mclose").onclick=closeM;document.querySelectorAll("[data-zoom]").forEach(i=>i.onclick=()=>window.open().document.write(`<img src="${i.src}" style="max-width:100%">`));
+ }catch(e){$("#mbody").innerHTML=`<div class="empty">${esc(e.message)}</div><button class="btn" onclick="document.getElementById('modal').classList.remove('open')">বন্ধ</button>`}
+}
+
+// ---------- Reports ----------
+let rtab="open";
+async function reports(){
+ view(`<div class="card"><div class="chips">${[["open","নতুন"],["resolved","সমাধান হয়েছে"],["dismissed","বাতিল"]].map(([k,l])=>`<button class="chip ${k===rtab?"act":""}" data-t="${k}">${l}</button>`).join("")}<button class="chip" id="rf">⟳ রিফ্রেশ</button></div></div><div class="card"><div class="tw" id="rlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{rtab=b.dataset.t;reports()});$("#rf").onclick=reports;
+ const RS={"Abuse in party room comments":"পার্টি রুমে কমেন্টে গালাগালি","Abuse in inbox":"ইনবক্সে গালাগালি","Bad or obscene name":"খারাপ / অশ্লীল নাম","Bad or obscene photo":"খারাপ / অশ্লীল ছবি","Fraud":"প্রতারণা","Other":"অন্যান্য"};
+ try{const s=await getDocs(query(collection(db,"reports"),where("status","==",rtab),limit(300)));
+  const rows=s.docs.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0));
+  if(!rows.length){$("#rlist").innerHTML=`<div class="empty">কোনো রিপোর্ট নেই</div>`;return}
+  $("#rlist").innerHTML=`<table><tr><th>সময়</th><th>যে রিপোর্ট করেছে</th><th>যার বিরুদ্ধে</th><th>কারণ</th><th>স্ক্রিনশট</th><th></th></tr>${rows.map(d=>{const r=d.data();return `<tr><td>${dt(r.at)}</td>
+   <td><b>${esc(r.fromName)}</b><div class="muted" style="font-size:12px">ID ${esc(r.fromId)}</div></td>
+   <td><b>${esc(r.targetName)}</b><div class="muted" style="font-size:12px">ID ${esc(r.targetId)}</div></td>
+   <td style="max-width:240px"><b>${esc(RS[r.reason]||r.reason)}</b>${r.details?`<div class="muted" style="font-size:12px">${esc(r.details)}</div>`:""}${r.note?`<div style="font-size:12px;color:var(--accent)">নোট: ${esc(r.note)}</div>`:""}</td>
+   <td>${(r.images||[]).map(im=>`<img data-zoomr src="data:image/jpeg;base64,${im}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;cursor:zoom-in;margin:2px">`).join("")||"—"}</td>
+   <td style="white-space:nowrap"><button class="btn sm" data-up="${r.target}">প্রোফাইল</button> <button class="btn sm" data-ch="${r.chatId||""}" data-who="${r.target}">চ্যাট</button>${r.status==="open"?` <button class="btn sm g" data-res="${d.id}">সমাধান</button> <button class="btn sm r" data-dis="${d.id}">বাতিল</button>`:""}</td></tr>`}).join("")}</table>`;
+  document.querySelectorAll("[data-zoomr]").forEach(i=>i.onclick=()=>lightbox(i.src));
+  document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
+  document.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{if(b.dataset.ch)openChat(b.dataset.ch,b.dataset.who);else toast("চ্যাট নেই")});
+  const decide=async(id,st)=>{const r=rows.find(x=>x.id===id).data();const note=prompt(st==="resolved"?"কী ব্যবস্থা নিলেন? (ঐচ্ছিক)":"বাতিলের কারণ (ঐচ্ছিক)","");if(note===null)return;
+   try{const b=writeBatch(db);b.update(doc(db,"reports",id),{status:st,note,decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email});
+    b.set(doc(collection(db,"users",r.from,"inbox")),{title:"Report reviewed",body:st==="resolved"?`Thank you. We reviewed your report about ${r.targetName} (ID ${r.targetId}) and took action.`:`We reviewed your report about ${r.targetName} (ID ${r.targetId}) and found no rule break.`,kind:"report",at:serverTimestamp()});
+    await b.commit();await log("report-"+st,r.targetId,{reason:r.reason,note});toast("হয়ে গেছে ✓");reports()}catch(e){toast("ব্যর্থ: "+e.message)}};
+  document.querySelectorAll("[data-res]").forEach(b=>b.onclick=()=>decide(b.dataset.res,"resolved"));
+  document.querySelectorAll("[data-dis]").forEach(b=>b.onclick=()=>decide(b.dataset.dis,"dismissed"));
+ }catch(e){$("#rlist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
-const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps};
+const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports};
 
 // ---------- Auth ----------
 $("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};
