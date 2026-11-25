@@ -219,7 +219,7 @@ const EN={
 };
 const EN_KEYS=Object.keys(EN).sort((a,b)=>b.length-a.length);
 let LANG=(()=>{try{return localStorage.getItem("adm_lang")||"bn"}catch(e){return"bn"}})();
-const T=s=>{if(LANG!=="en"||s==null)return s;s=String(s);const t=s.trim();if(EN[t]!==undefined)return s.replace(t,EN[t]);for(const k of EN_KEYS)if(k.length>4&&s.includes(k))s=s.split(k).join(EN[k]);return s};
+const T=s=>{if(LANG!=="en"||s==null)return s;s=String(s);const t=s.trim();if(EN[t]!==undefined)return s.replace(t,EN[t]);for(const k of EN_KEYS)if(k.length>3&&s.includes(k))s=s.split(k).join(EN[k]);return s};
 const ORIG=new WeakMap(),SETV=new WeakMap();
 function trNode(n){
  if(n.nodeType===3){if(!/[ঀ-৿]/.test(n.nodeValue)&&!ORIG.has(n))return;if(!ORIG.has(n))ORIG.set(n,n.nodeValue);const o=ORIG.get(n);const v=LANG==="en"?T(o):o;if(n.nodeValue!==v){SETV.set(n,v);n.nodeValue=v}return}
