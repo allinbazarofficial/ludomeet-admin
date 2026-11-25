@@ -39,7 +39,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .tw{overflow:auto}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .inp{padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;min-width:200px}
-.badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#eee}.badge.pending{background:#fff1d6;color:#a15c00}.badge.paid{background:#d9f5e7;color:#1d6b4c}.badge.rejected{background:#fde0e0;color:#b02a2a}.badge.ban{background:#fde0e0;color:#b02a2a}.badge.seller{background:#e3ecff;color:#2848a8}
+.badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#eee}.badge.pending{background:#fff1d6;color:#a15c00}.badge.paid{background:#d9f5e7;color:#1d6b4c}.badge.rejected{background:#fde0e0;color:#b02a2a}.badge.ban{background:#fde0e0;color:#b02a2a}.badge.seller{background:#e3ecff;color:#2848a8}.badge.vip{background:linear-gradient(90deg,#ffc94d,#ff8a3d);color:#3a1a00}.badge.role{background:#efe6ff;color:#5a2bb0}
 .muted{color:var(--muted)}.av{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#eee;vertical-align:middle}
 .login{min-height:100vh;display:grid;place-items:center}.login .card{width:min(420px,92vw);text-align:center;padding:34px}
 .login img{width:84px;height:84px;border-radius:20px}.gbtn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:12px 22px;font-weight:600;margin-top:18px}
@@ -97,7 +97,15 @@ const fmt=n=>Number(n||0).toLocaleString("en-US");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const toast=t=>{const e=$("#toast");e.textContent=T(t);e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3200)};
 const dt=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"};
-function playerId(uid){let h=0;for(const c of uid)h=(h*31+c.charCodeAt(0))&0x7fffffff;return String(10000000+h%90000000)}
+const VIPS=["111111", "222222", "333333", "444444", "555555", "666666", "777777", "888888", "999999", "123456", "234567", "345678", "456789", "654321", "765432", "876543", "987654", "100000", "200000", "300000", "400000", "500000", "600000", "700000", "800000", "900000", "121212", "131313", "151515", "181818", "191919", "202020", "232323", "525252", "585858", "686868", "520520", "521521", "168168", "888999", "666888", "999888", "100100", "200200", "500500", "123123", "112233", "778899", "808080", "909090"];
+const ROLES=[["bd","BD"],["admin","Admin"],["superAdmin","Super Admin"],["coinSeller","Coin Seller"],["payroll","Payroll / Portal"],["superSeller","Super Seller"],["management","Management"]];
+const vipOn=u=>!!(u&&u.vipId&&u.vipUntil&&u.vipUntil.toMillis()>Date.now());
+const ownId=u=>u?.userId||u?.playerId||"—";
+const shownId=u=>vipOn(u)?u.vipId:ownId(u);
+const idCell=u=>vipOn(u)?`<span class="badge vip">VIP</span> <b>${esc(u.vipId)}</b><div class="muted" style="font-size:11px">আসল ${esc(ownId(u))}</div>`:esc(ownId(u));
+const DUR=[["3m","৩ মাস",3],["6m","৬ মাস",6],["1y","১ বছর",12],["2y","২ বছর",24],["3y","৩ বছর",36]];
+const addMonths=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x};
+const day=v=>{const d=v?.toDate?v.toDate():v;return d?d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"—"};
 async function log(action,target,details){try{await addDoc(collection(db,"adminLogs"),{action,target,details,by:auth.currentUser.email,at:serverTimestamp()})}catch(e){}}
 
 // ---------- Language (বাংলা | EN) ----------
@@ -125,6 +133,30 @@ const EN={
 "যেমন: বোনাস, ভুল সংশোধন":"e.g. bonus, correction",
 "এখনো কোনো অ্যাকশন নেই":"No actions yet",
 "কয়েন / ডায়মন্ড দিন":"Give coins / diamonds",
+"পদ ও অনুমতি":"Roles & permissions",
+"VIP আইডি":"VIP IDs",
+"পদ (একাধিক বাছাই করা যায়)":"Roles (pick one or more)",
+"পদ সেভ করুন":"Save roles",
+"পদধারী ইউজার":"Users with roles",
+"কাউকে পদ দিতে নিচে আইডি বা Gmail দিয়ে খুঁজে \"ম্যানেজ\" চাপুন, তারপর পদ বাছাই করে সেভ করুন। একজন একাধিক পদ রাখতে পারেন।":"To give a role, search by ID or Gmail below, press \"Manage\", pick roles and save. One user can hold several roles.",
+"৫০টি বিশেষ আইডি। সাধারণ ইউজার এগুলো পায় না। মেয়াদ থাকা পর্যন্ত ইউজারের সব জায়গায় VIP আইডি দেখাবে, মেয়াদ শেষে আসল আইডি ফিরে আসবে।":"50 special IDs. Normal users never get them. While active, the VIP ID shows everywhere; after expiry the user's own ID returns.",
+"ইউজারের আইডি বা Gmail":"User ID or Gmail",
+"এই VIP আইডি এখন অন্য কেউ ব্যবহার করছে":"Someone else is using this VIP ID now",
+"মেয়াদ বাড়ান":"Extend",
+"ফিরিয়ে নিন":"Take back",
+"মেয়াদ শেষ":"Expires",
+"ব্যবহারে":"In use",
+"খালি":"Free",
+"মেয়াদ":"Duration",
+"বাড়ান":"Extend",
+"আসল":"Own",
+"দিন":"Give",
+"সব":"All",
+"৩ মাস":"3 months",
+"৬ মাস":"6 months",
+"১ বছর":"1 year",
+"২ বছর":"2 years",
+"৩ বছর":"3 years",
 "ওয়ালেট রেট ও সেটিং":"Wallet rates & settings",
 "কয়েন সেলার বানাতে":"To make a coin seller,",
 "কয়েন সেলার বানান":"Make coin seller",
@@ -239,7 +271,7 @@ setLang(LANG);
 const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
  ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
- ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
+ ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
  ["APP DATA",[["rooms","🎙️","ভয়েস রুম","শীঘ্রই"],["gifts","🎁","গিফট","শীঘ্রই"],["games","🎲","গেম ডেটা","শীঘ্রই"]]],
 ];
 let current="dash";
@@ -290,26 +322,31 @@ async function users(){
  listUsers(query(collection(db,"users"),orderBy("createdAt","desc"),limit(50)));
 }
 async function searchUsers(){const q=$("#uq").value.trim();if(!q)return;const U=collection(db,"users");
- let s=await getDocs(query(U,where(q.includes("@")?"email":"playerId","==",q)));
- if(s.empty&&!q.includes("@")){const all=await getDocs(query(U,limit(1000)));const hit=all.docs.filter(d=>playerId(d.id)===q);renderUsers(hit);return}
- renderUsers(s.docs)}
+ renderUsers(await findUsers(q))}
+async function findUsers(q){const U=collection(db,"users");
+ if(q.includes("@"))return (await getDocs(query(U,where("email","==",q.toLowerCase())))).docs.concat((await getDocs(query(U,where("email","==",q)))).docs).filter((d,i,a)=>a.findIndex(x=>x.id===d.id)===i);
+ for(const f of ["userId","vipId","playerId"]){const s=await getDocs(query(U,where(f,"==",q)));if(!s.empty)return s.docs}
+ return []}
 async function listUsers(q){try{const s=await getDocs(q);renderUsers(s.docs)}catch(e){$("#ulist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 let cache={};
 function renderUsers(docs){
  if(!docs.length){$("#ulist").innerHTML=`<div class="empty">কোনো ইউজার পাওয়া যায়নি</div>`;return}
- docs.forEach(d=>{cache[d.id]=d.data();if(!d.data().playerId)updateDoc(doc(db,"users",d.id),{playerId:playerId(d.id)}).catch(()=>{})});
- $("#ulist").innerHTML=`<table><tr><th>ইউজার</th><th>আইডি</th><th>কয়েন</th><th>ডায়মন্ড</th><th>Locked</th><th>দেশ</th><th>যোগ দিয়েছে</th><th></th></tr>${docs.map(d=>{const u=d.data();return `<tr><td>${u.photoUrl?`<img class="av" src="${esc(u.photoUrl)}">`:""} <b>${esc(u.name)}</b> ${u.banned?'<span class="badge ban">BANNED</span>':""}${u.coinSeller?' <span class="badge seller">SELLER</span>':""}<div class="muted" style="font-size:12px">${esc(u.email)}</div></td><td>${playerId(d.id)}</td><td>${fmt(u.coins)}</td><td>${fmt(u.diamonds)}</td><td>${fmt(u.lockedDiamonds)}</td><td>${esc(u.country||"—")}</td><td>${dt(u.createdAt)}</td><td><button class="btn sm o" data-u="${d.id}">ম্যানেজ</button></td></tr>`}).join("")}</table>`;
+ docs.forEach(d=>{cache[d.id]=d.data()});
+ $("#ulist").innerHTML=`<table><tr><th>ইউজার</th><th>আইডি</th><th>কয়েন</th><th>ডায়মন্ড</th><th>Locked</th><th>দেশ</th><th>যোগ দিয়েছে</th><th></th></tr>${docs.map(d=>{const u=d.data();return `<tr><td>${u.photoUrl?`<img class="av" src="${esc(u.photoUrl)}">`:""} <b>${esc(u.name)}</b> ${u.banned?'<span class="badge ban">BANNED</span>':""}${u.coinSeller?' <span class="badge seller">SELLER</span>':""}${(u.roles||[]).filter(r=>r!=="coinSeller").map(r=>` <span class="badge role">${esc((ROLES.find(x=>x[0]===r)||[r,r])[1])}</span>`).join("")}<div class="muted" style="font-size:12px">${esc(u.email)}</div></td><td>${idCell(u)}</td><td>${fmt(u.coins)}</td><td>${fmt(u.diamonds)}</td><td>${fmt(u.lockedDiamonds)}</td><td>${esc(u.country||"—")}</td><td>${dt(u.createdAt)}</td><td><button class="btn sm o" data-u="${d.id}">ম্যানেজ</button></td></tr>`}).join("")}</table>`;
  document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>manageUser(b.dataset.u));
 }
 async function manageUser(uid){
  const s=await getDoc(doc(db,"users",uid));const u=s.data();cache[uid]=u;
- modal(`<h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${playerId(uid)}</span></h3>
+ modal(`<h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))}${vipOn(u)?` (VIP · আসল ${esc(ownId(u))})`:""}</span></h3>
  <div class="muted">${esc(u.email)}</div>
  <div class="grid" style="margin:14px 0;grid-template-columns:repeat(3,1fr)"><div class="stat"><span>কয়েন</span><b>${fmt(u.coins)}</b></div><div class="stat"><span>ডায়মন্ড</span><b>${fmt(u.diamonds)}</b></div><div class="stat"><span>Locked</span><b>${fmt(u.lockedDiamonds)}</b></div></div>
  <label class="f">পরিমাণ</label><input class="inp" id="amt" type="number" min="1" placeholder="যেমন 10000" style="width:100%">
  <label class="f">কারণ (লগে থাকবে)</label><input class="inp" id="why" placeholder="যেমন: বোনাস, ভুল সংশোধন" style="width:100%">
  <div class="row" style="margin-top:14px"><button class="btn g" data-a="coin+">+ কয়েন দিন</button><button class="btn r" data-a="coin-">− কয়েন কাটুন</button><button class="btn g" data-a="dia+">+ ডায়মন্ড দিন</button><button class="btn r" data-a="dia-">− ডায়মন্ড কাটুন</button></div>
- <div class="row" style="margin-top:14px"><button class="btn" data-a="ban">${u.banned?"আনব্যান করুন":"ব্যান করুন"}</button><button class="btn" data-a="seller">${u.coinSeller?"সেলার বাতিল":"কয়েন সেলার বানান"}</button><button class="btn" id="mclose">বন্ধ</button></div>`);
+ <div class="row" style="margin-top:14px"><button class="btn" data-a="ban">${u.banned?"আনব্যান করুন":"ব্যান করুন"}</button><button class="btn" data-a="seller">${u.coinSeller?"সেলার বাতিল":"কয়েন সেলার বানান"}</button><button class="btn" id="mclose">বন্ধ</button></div>
+ <label class="f" style="margin-top:16px">পদ (একাধিক বাছাই করা যায়)</label><div class="row">${ROLES.map(([k,l])=>`<label class="chip" style="cursor:pointer"><input type="checkbox" data-role="${k}" ${(u.roles||[]).includes(k)||(k==="coinSeller"&&u.coinSeller)?"checked":""}> ${l}</label>`).join("")}</div>
+ <div class="row" style="margin-top:10px"><button class="btn o" id="rsave">পদ সেভ করুন</button></div>`);
+ $("#rsave").onclick=()=>saveRoles(uid);
  $("#mclose").onclick=closeM;
  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(uid,b.dataset.a));
 }
@@ -317,14 +354,14 @@ async function userAction(uid,a){
  const u=cache[uid],n=Math.floor(Number($("#amt")?.value||0)),why=$("#why")?.value||"";
  const ref=doc(db,"users",uid);
  try{
-  if(a==="ban"||a==="seller"){const f=a==="ban"?"banned":"coinSeller";await updateDoc(ref,{[f]:!u[f]});await log(a,playerId(uid),{to:!u[f],why});toast("সেভ হয়েছে");closeM();refresh();return}
+  if(a==="ban"||a==="seller"){const f=a==="ban"?"banned":"coinSeller";const upd={[f]:!u[f]};if(a==="seller"){const r=new Set(u.roles||[]);u[f]?r.delete("coinSeller"):r.add("coinSeller");upd.roles=[...r]}await updateDoc(ref,upd);await log(a,shownId(u),{to:!u[f],why});toast("সেভ হয়েছে");closeM();refresh();return}
   if(!(n>0)){toast("সঠিক পরিমাণ লিখুন");return}
   if(a==="coin-"&&n>(u.coins||0)){toast("এত কয়েন নেই");return}
   if(a==="dia-"&&n>(u.diamonds||0)){toast("এত ডায়মন্ড নেই");return}
   if(!confirm(`নিশ্চিত? ${a} ${fmt(n)} → ${u.name}`))return;
   const upd={"coin-":{coins:increment(-n)},"dia+":{diamonds:increment(n),lifetimeDiamonds:increment(n)},"dia-":{diamonds:increment(-n)}};
   await updateDoc(ref,{...(a==="coin+"?{coins:increment(n)}:upd[a]),updatedAt:serverTimestamp()});
-  await log(a,playerId(uid),{amount:n,why,name:u.name});toast("হয়ে গেছে ✓");closeM();refresh();
+  await log(a,shownId(u),{amount:n,why,name:u.name});toast("হয়ে গেছে ✓");closeM();refresh();
  }catch(e){toast("ব্যর্থ: "+e.message)}
 }
 function refresh(){(PAGES[current]||soon)()}
@@ -405,8 +442,81 @@ async function message(){
  const save=async v=>{try{await setDoc(doc(db,"config","app"),{announcement:v,updatedAt:serverTimestamp()},{merge:true});await log("announcement","app",{text:v});toast("সেভ হয়েছে ✓");message()}catch(e){toast("ব্যর্থ: "+e.message)}};
  $("#msave").onclick=()=>save($("#msg").value.trim());$("#mclr").onclick=()=>save("");
 }
+async function saveRoles(uid){
+ const u=cache[uid];const roles=[...document.querySelectorAll("[data-role]")].filter(i=>i.checked).map(i=>i.dataset.role);
+ if(!confirm(`${u.name}-এর পদ সেভ করবেন?`))return;
+ try{await updateDoc(doc(db,"users",uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});
+  await log("roles",shownId(u),{from:u.roles||[],to:roles,name:u.name});toast("সেভ হয়েছে ✓");closeM();refresh()}catch(e){toast("ব্যর্থ: "+e.message)}}
+
+// ---------- Roles ----------
+async function roles(){
+ view(`<div class="card"><div class="ttl">ROLES</div><div class="muted">কাউকে পদ দিতে নিচে আইডি বা Gmail দিয়ে খুঁজে "ম্যানেজ" চাপুন, তারপর পদ বাছাই করে সেভ করুন। একজন একাধিক পদ রাখতে পারেন।</div>
+ <div class="row" style="margin-top:12px"><input class="inp" id="uq" placeholder="প্লেয়ার আইডি বা Gmail লিখুন" style="flex:1"><button class="btn o" id="ugo">খুঁজুন</button></div></div>
+ <div class="card"><div class="ttl">পদধারী ইউজার</div><div class="tw" id="ulist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ $("#ugo").onclick=searchUsers;$("#uq").onkeydown=e=>{if(e.key==="Enter")searchUsers()};
+ listUsers(query(collection(db,"users"),where("roles","array-contains-any",ROLES.map(r=>r[0])),limit(200)));
+}
+
+// ---------- VIP IDs ----------
+async function vip(){
+ view(`<div class="card"><div class="ttl">VIP IDS</div><div class="muted">৫০টি বিশেষ আইডি। সাধারণ ইউজার এগুলো পায় না। মেয়াদ থাকা পর্যন্ত ইউজারের সব জায়গায় VIP আইডি দেখাবে, মেয়াদ শেষে আসল আইডি ফিরে আসবে।</div>
+ <div class="chips" style="margin-top:12px" id="vf">${[["all","সব"],["free","খালি"],["used","ব্যবহারে"]].map(([k,l],i)=>`<button class="chip ${i===0?"act":""}" data-f="${k}">${l}</button>`).join("")}</div></div>
+ <div class="card"><div class="tw" id="vlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ let rows=[];
+ try{
+  const s=await getDocs(query(collection(db,"ids"),where("type","==","vip")));
+  const have=new Map(s.docs.map(d=>[d.id,d.data()]));
+  const miss=VIPS.filter(v=>!have.has(v));
+  if(miss.length){const b=writeBatch(db);miss.forEach(v=>{b.set(doc(db,"ids",v),{type:"vip",uid:null,until:null,at:serverTimestamp()});have.set(v,{type:"vip",uid:null})});await b.commit()}
+  const uids=[...new Set([...have.values()].map(x=>x.uid).filter(Boolean))];
+  const users={};await Promise.all(uids.map(async u=>{const d=await getDoc(doc(db,"users",u));if(d.exists())users[u]=d.data()}));
+  rows=VIPS.map(v=>{const x=have.get(v)||{};const u=x.uid?users[x.uid]:null;const active=!!(u&&u.vipId===v&&vipOn(u));return {v,x,u,active}});
+ }catch(e){$("#vlist").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+ const draw=f=>{const r=rows.filter(o=>f==="all"||(f==="free"?!o.active:o.active));
+  $("#vlist").innerHTML=`<table><tr><th>VIP আইডি</th><th>অবস্থা</th><th>ইউজার</th><th>মেয়াদ শেষ</th><th></th></tr>${r.map(o=>`<tr><td><b style="font-size:16px">${o.v}</b></td><td>${o.active?'<span class="badge paid">ব্যবহারে</span>':'<span class="badge">খালি</span>'}</td><td>${o.active?`<b>${esc(o.u.name)}</b><div class="muted" style="font-size:12px">আসল ${esc(ownId(o.u))} · ${esc(o.u.email)}</div>`:"—"}</td><td>${o.active?day(o.u.vipUntil):"—"}</td><td>${o.active?`<button class="btn sm g" data-ext="${o.v}">মেয়াদ বাড়ান</button> <button class="btn sm r" data-rev="${o.v}">ফিরিয়ে নিন</button>`:`<button class="btn sm o" data-give="${o.v}">দিন</button>`}</td></tr>`).join("")}</table>`;
+  document.querySelectorAll("[data-give]").forEach(b=>b.onclick=()=>vipGive(b.dataset.give,rows));
+  document.querySelectorAll("[data-ext]").forEach(b=>b.onclick=()=>vipExtend(rows.find(o=>o.v===b.dataset.ext)));
+  document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>vipRevoke(rows.find(o=>o.v===b.dataset.rev)));
+ };
+ document.querySelectorAll("#vf [data-f]").forEach(b=>b.onclick=()=>{document.querySelectorAll("#vf .chip").forEach(c=>c.classList.remove("act"));b.classList.add("act");draw(b.dataset.f)});
+ draw("all");
+}
+const durPick=()=>`<label class="f">মেয়াদ</label><div class="chips" id="dur">${DUR.map(([k,l],i)=>`<button class="chip ${i===0?"act":""}" data-m="${DUR[i][2]}">${l}</button>`).join("")}</div>`;
+const bindDur=()=>{let m=3;document.querySelectorAll("#dur .chip").forEach(b=>b.onclick=()=>{document.querySelectorAll("#dur .chip").forEach(c=>c.classList.remove("act"));b.classList.add("act");m=+b.dataset.m});return()=>m};
+function vipGive(v){
+ modal(`<h3 style="margin-top:0">VIP আইডি ${v} দিন</h3><label class="f">ইউজারের আইডি বা Gmail</label><input class="inp" id="vq" style="width:100%">${durPick()}
+ <div class="row" style="margin-top:16px"><button class="btn o" id="vok">দিন</button><button class="btn" id="mclose">বন্ধ</button></div>`);
+ $("#mclose").onclick=closeM;const getM=bindDur();
+ $("#vok").onclick=async()=>{const q=$("#vq").value.trim();if(!q){toast("ইউজারের আইডি বা Gmail");return}
+  try{const hits=await findUsers(q);if(hits.length!==1){toast("কোনো ইউজার পাওয়া যায়নি");return}
+   const d=hits[0],u=d.data(),m=getM();
+   const cur=await getDoc(doc(db,"ids",v));const cx=cur.data()||{};
+   if(cx.uid&&cx.uid!==d.id){const o=await getDoc(doc(db,"users",cx.uid));if(o.exists()&&o.data().vipId===v&&vipOn(o.data())){toast("এই VIP আইডি এখন অন্য কেউ ব্যবহার করছে");return}}
+   const until=addMonths(new Date(),m);
+   if(!confirm(`${u.name} (আসল ${ownId(u)}) কে ${v} দেবেন? মেয়াদ: ${day(until)}`))return;
+   const b=writeBatch(db);
+   if(vipOn(u)&&u.vipId!==v)b.set(doc(db,"ids",u.vipId),{type:"vip",uid:null,until:null},{merge:true});
+   if(cx.uid&&cx.uid!==d.id)b.update(doc(db,"users",cx.uid),{vipId:"",vipUntil:null});
+   b.set(doc(db,"ids",v),{type:"vip",uid:d.id,until:Timestamp.fromDate(until),at:serverTimestamp()},{merge:true});
+   b.update(doc(db,"users",d.id),{vipId:v,vipUntil:Timestamp.fromDate(until),updatedAt:serverTimestamp()});
+   await b.commit();await log("vip-give",v,{to:ownId(u),name:u.name,months:m});toast("হয়ে গেছে ✓");closeM();vip();
+  }catch(e){toast("ব্যর্থ: "+e.message)}};
+}
+function vipExtend(o){
+ modal(`<h3 style="margin-top:0">${o.v} — মেয়াদ বাড়ান</h3><div class="muted">${esc(o.u.name)} · এখন শেষ হবে ${day(o.u.vipUntil)}</div>${durPick()}
+ <div class="row" style="margin-top:16px"><button class="btn g" id="vok">বাড়ান</button><button class="btn" id="mclose">বন্ধ</button></div>`);
+ $("#mclose").onclick=closeM;const getM=bindDur();
+ $("#vok").onclick=async()=>{const m=getM();const base=Math.max(Date.now(),o.u.vipUntil.toMillis());const until=addMonths(new Date(base),m);
+  try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipUntil:Timestamp.fromDate(until)});b.set(doc(db,"ids",o.v),{until:Timestamp.fromDate(until)},{merge:true});await b.commit();
+   await log("vip-extend",o.v,{name:o.u.name,months:m});toast("হয়ে গেছে ✓");closeM();vip()}catch(e){toast("ব্যর্থ: "+e.message)}};
+}
+async function vipRevoke(o){
+ if(!confirm(`${o.v} ${o.u.name}-এর কাছ থেকে ফিরিয়ে নেবেন? তার আসল আইডি ${ownId(o.u)} আবার দেখাবে।`))return;
+ try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipId:"",vipUntil:null});b.set(doc(db,"ids",o.v),{uid:null,until:null},{merge:true});await b.commit();
+  await log("vip-revoke",o.v,{name:o.u.name});toast("হয়ে গেছে ✓");vip()}catch(e){toast("ব্যর্থ: "+e.message)}
+}
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
-const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message};
+const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles};
 
 // ---------- Auth ----------
 $("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};
