@@ -710,7 +710,12 @@ async function depset(){
   <label class="f">USDT নেটওয়ার্ক</label><input class="inp" id="dsn" style="width:100%">
   <label class="f">Binance ID (UID)</label><input class="inp" id="dsb" style="width:100%">
   <label class="f">Binance নাম</label><input class="inp" id="dsm" style="width:100%">
-  <button class="btn o" id="dss" style="margin-top:14px">সেভ করুন</button></div>`);
+  <button class="btn o" id="dss" style="margin-top:14px">সেভ করুন</button></div>
+  <div class="card" style="max-width:640px"><div class="ttl">উত্তোলন ও ডিপোজিট</div><div class="muted">বন্ধ থাকলে অ্যাপে ডায়মন্ড উত্তোলন (Payroll) আর পার্টনার ডিপোজিট দেখাবে না। ডায়মন্ড → কয়েন এক্সচেঞ্জ সবসময় চালু থাকে।</div>
+  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="mf" style="width:22px;height:22px"> উত্তোলন ও ডিপোজিট চালু</label></div>`);
+ try{const a=(await getDoc(doc(db,"config","app"))).data()||{};$("#mf").checked=a.moneyFeatures===true}catch(e){}
+ $("#mf").onchange=async e=>{const on=e.target.checked;if(!confirm(on?"অ্যাপে উত্তোলন ও ডিপোজিট চালু করবেন?":"অ্যাপে উত্তোলন ও ডিপোজিট বন্ধ করবেন?")){e.target.checked=!on;return}
+  try{await setDoc(doc(db,"config","app"),{moneyFeatures:on},{merge:true});await log("money-features","config",{on});toast("সেভ হয়েছে ✓")}catch(err){toast("ব্যর্থ: "+err.message);e.target.checked=!on}};
  const D={usdtAddress:"0xd94cd3f3c29875f89bbe291b45ceeac5f889348e",usdtNetwork:"BSC (BNB Smart Chain) BEP20",binanceId:"978923854",binanceName:"LudoMeet"};
  try{const s=(await getDoc(doc(db,"config","deposit"))).data()||{};Object.assign(D,Object.fromEntries(Object.entries(s).filter(([k,v])=>typeof v==="string"&&v)))}catch(e){}
  $("#dsa").value=D.usdtAddress;$("#dsn").value=D.usdtNetwork;$("#dsb").value=D.binanceId;$("#dsm").value=D.binanceName;
