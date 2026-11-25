@@ -18,6 +18,7 @@ server {
     root /var/www/ludomeet/site;
     index index.html;
     location / { try_files $uri $uri/ =404; }
+    location /store/ { add_header Access-Control-Allow-Origin "*"; try_files $uri =404; }
 }
 NG
 rm -f /etc/nginx/sites-enabled/default
