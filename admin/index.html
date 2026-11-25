@@ -47,6 +47,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .modal .card{width:min(520px,94vw);max-height:90vh;overflow:auto}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#24323a;color:#fff;padding:12px 20px;border-radius:14px;display:none;z-index:40}
 .empty{padding:30px;text-align:center;color:var(--muted)}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff;margin-right:8px}.lang b{padding:7px 12px;font-size:13px;cursor:pointer;font-weight:700;color:var(--muted)}.lang b.on{background:var(--accent);color:#fff}
 label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 </style>
 </head>
@@ -58,6 +59,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
     <h2 style="margin:6px 0">অ্যাডমিন পোর্টাল</h2>
     <div class="muted">শুধু অনুমোদিত অ্যাডমিন Gmail দিয়ে লগইন করা যাবে</div>
     <button class="gbtn" id="gin"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Google দিয়ে লগইন</button>
+    <div style="margin-top:16px"><span class="lang"><b data-l="bn">বাংলা</b><b data-l="en">EN</b></span></div>
     <div id="lerr" class="muted" style="margin-top:14px;color:var(--red)"></div>
   </div>
 </div>
@@ -67,6 +69,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
     <button class="ham" id="ham">☰</button>
     <div><div class="kick">OPERATIONS CONSOLE</div><h1 id="ptitle">ড্যাশবোর্ড</h1></div>
     <div class="sp"></div><span class="pill">ADMIN</span>
+    <span class="lang"><b data-l="bn">বাংলা</b><b data-l="en">EN</b></span>
     <button class="btn" id="out">⎋ লগআউট</button>
   </div>
   <div class="shade" id="shade"></div>
@@ -92,19 +95,155 @@ const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app);
 const $=s=>document.querySelector(s);
 const fmt=n=>Number(n||0).toLocaleString("en-US");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const toast=t=>{const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3200)};
+const toast=t=>{const e=$("#toast");e.textContent=T(t);e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3200)};
 const dt=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"};
 function playerId(uid){let h=0;for(const c of uid)h=(h*31+c.charCodeAt(0))&0x7fffffff;return String(10000000+h%90000000)}
 async function log(action,target,details){try{await addDoc(collection(db,"adminLogs"),{action,target,details,by:auth.currentUser.email,at:serverTimestamp()})}catch(e){}}
 
+// ---------- Language (বাংলা | EN) ----------
+const EN={
+"থেকে ইউজার খুলে \"কয়েন সেলার বানান\" চাপুন। সেলারকে কয়েন দিতে নিচের তালিকা থেকে ম্যানেজ চাপুন।":"open the user and press \"Make coin seller\". To give a seller coins, press Manage in the list below.",
+"এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।":"This section opens with the online update (voice rooms, gifts, online games).",
+"সব ইউজার অ্যাপ খুললে এই বার্তা দেখবে (অ্যাপের পরের আপডেট থেকে)।":"Every user will see this message when they open the app (from the next app update).",
+"ইউজার পেলে \"ম্যানেজ\" চেপে কয়েন বা ডায়মন্ড দিন বা কাটুন।":"When the user is found, press \"Manage\" to give or remove coins or diamonds.",
+"অ্যাপের পরের আপডেটে এই রেটগুলো অ্যাপ নিজে পড়ে নেবে।":"From the next app update, the app reads these rates by itself.",
+"শপের প্যাকেজ। পরিবর্তন করে \"সেভ\" চাপুন। (Google Play-তে দামও একই করতে হবে।)":"Shop packages. Edit and press \"Save\". (Set the same prices in Google Play.)",
+"ভয়েস রুম চালু হলে এখানে হিসাব দেখাবে।":"Numbers will show here once voice rooms are live.",
+"প্রতিদিনের হিসাব শুরু হয় 00:00 UTC (বাংলাদেশ সময় সকাল ৬টা)।":"Daily totals reset at 00:00 UTC (6 AM Bangladesh time).",
+"শুধু অনুমোদিত অ্যাডমিন Gmail দিয়ে লগইন করা যাবে":"Only approved admin Gmail accounts can sign in",
+"অর্ডার বাতিল করবেন?":"Cancel this order?",
+"ডায়মন্ড ইউজারকে ফেরত যাবে।":"diamonds will go back to the user.",
+"পাঠিয়েছেন? Paid করবেন?":"sent? Mark as paid?",
+"নতুন ইউজার (নির্বাচিত সময়)":"New users (selected period)",
+"১ লাখ ডায়মন্ড = কত টাকা (হিসাবের জন্য)":"BDT per 100,000 diamonds (for accounting)",
+"১০০ ডায়মন্ডে কত কয়েন":"Coins per 100 diamonds",
+"কত ডায়মন্ডে $1":"Diamonds per $1",
+"সর্বনিম্ন Withdraw (ডায়মন্ড)":"Minimum withdraw (diamonds)",
+"সর্বনিম্ন Exchange (ডায়মন্ড)":"Minimum exchange (diamonds)",
+"Withdraw ফি (%)":"Withdraw fee (%)",
+"কোনো ইউজার পাওয়া যায়নি":"No users found",
+"যেমন: বোনাস, ভুল সংশোধন":"e.g. bonus, correction",
+"এখনো কোনো অ্যাকশন নেই":"No actions yet",
+"কয়েন / ডায়মন্ড দিন":"Give coins / diamonds",
+"ওয়ালেট রেট ও সেটিং":"Wallet rates & settings",
+"কয়েন সেলার বানাতে":"To make a coin seller,",
+"কয়েন সেলার বানান":"Make coin seller",
+"ইউজার ম্যানেজমেন্ট":"User management",
+"প্লেয়ার আইডি বা Gmail লিখুন":"Enter player ID or Gmail",
+"প্লেয়ার আইডি বা Gmail":"Player ID or Gmail",
+"কারণ (লগে থাকবে)":"Reason (saved in log)",
+"অ্যাডমিন পোর্টাল":"Admin Portal",
+"ব্যান করা ইউজার":"Banned users",
+"পরিশোধিত অর্ডার":"Paid orders",
+"কোনো অর্ডার নেই":"No orders",
+"পেন্ডিং অর্ডার":"Pending orders",
+"পেন্ডিং পরিমাণ":"Pending amount",
+"সঠিক পরিমাণ লিখুন":"Enter a valid amount",
+"এত ডায়মন্ড নেই":"Not enough diamonds",
+"এত কয়েন নেই":"Not enough coins",
+"কয়েন (সবার কাছে)":"Coins (all users)",
+"ডায়মন্ড (Available)":"Diamonds (Available)",
+"ডায়মন্ড (Locked)":"Diamonds (Locked)",
+"Lifetime ডায়মন্ড":"Lifetime diamonds",
+"লোড করা যায়নি":"Could not load",
+"− ডায়মন্ড কাটুন":"− Remove diamonds",
+"+ ডায়মন্ড দিন":"+ Give diamonds",
+"− কয়েন কাটুন":"− Remove coins",
+"+ কয়েন দিন":"+ Give coins",
+"আজকের মোট রুম":"Rooms today",
+"কয়েন প্যাকেজ":"Coin packages",
+"সর্বশেষ ৫০ জন":"Latest 50",
+"সিস্টেম মেসেজ":"System message",
+"মোট খেলা গেম":"Total games played",
+"🔍 সেকশন খুঁজুন":"🔍 Find section",
+"ইউজার খুঁজুন":"Search users",
+"আপডেট হয়েছে ✓":"Updated ✓",
+"আনব্যান করুন":"Unban",
+"ব্যান করুন":"Ban",
+"সেলার বাতিল":"Remove seller",
+"যোগ দিয়েছে":"Joined",
+"+ প্যাকেজ যোগ":"+ Add package",
+"কয়েন সেলার":"Coin sellers",
+"এই Gmail অ্যাডমিন না:":"This Gmail is not an admin:",
+"মোট পরিশোধ":"Total paid",
+"সেভ হয়েছে ✓":"Saved ✓",
+"সেভ হয়েছে":"Saved",
+"অ্যাকশন লগ":"Action log",
+"ড্যাশবোর্ড":"Dashboard",
+"Google দিয়ে লগইন":"Sign in with Google",
+"লগইন হয়নি:":"Sign-in failed:",
+"Withdraw / পে-রোল":"Withdraw / Payroll",
+"ব্যান করা":"Banned",
+"এই সপ্তাহ":"This week",
+"মোট ইউজার":"Total users",
+"লোড হচ্ছে…":"Loading…",
+"বিস্তারিত":"Details",
+"হয়ে গেছে ✓":"Done ✓",
+"গত ৩০ দিন":"Last 30 days",
+"পরিশোধিত":"Paid",
+"নিশ্চিত?":"Sure?",
+"ডায়মন্ড":"Diamonds",
+"টার্গেট":"Target",
+"ম্যানেজ":"Manage",
+"⟳ রিফ্রেশ":"⟳ Refresh",
+"দাম ($)":"Price ($)",
+"অ্যাকশন":"Action",
+"অ্যাকাউন্ট":"Account",
+"পেন্ডিং":"Pending",
+"পরিমাণ":"Amount",
+"ব্যর্থ:":"Failed:",
+"অবস্থা":"Status",
+"খুঁজুন":"Search",
+"পদ্ধতি":"Method",
+"গতকাল":"Yesterday",
+"কয়েন":"Coins",
+"ইউজার":"User",
+"বোনাস":"Bonus",
+"⎋ লগআউট":"⎋ Logout",
+"বাতিল":"Cancel",
+"মুছুন":"Clear",
+"যেমন":"e.g.",
+"আইডি":"ID",
+"টাকা":"Amount",
+"সময়":"Time",
+"বন্ধ":"Close",
+"দেশ":"Country",
+"মোট":"Total",
+"সেভ":"Save",
+"শীঘ্রই":"Soon",
+"কে":"By",
+"আজ":"Today",
+"ভয়েস রুম":"Voice rooms",
+"গিফট":"Gifts",
+"গেম ডেটা":"Game data",
+};
+const EN_KEYS=Object.keys(EN).sort((a,b)=>b.length-a.length);
+let LANG=(()=>{try{return localStorage.getItem("adm_lang")||"bn"}catch(e){return"bn"}})();
+const T=s=>{if(LANG!=="en"||s==null)return s;s=String(s);const t=s.trim();if(EN[t]!==undefined)return s.replace(t,EN[t]);for(const k of EN_KEYS)if(k.length>4&&s.includes(k))s=s.split(k).join(EN[k]);return s};
+const ORIG=new WeakMap(),SETV=new WeakMap();
+function trNode(n){
+ if(n.nodeType===3){if(!/[ঀ-৿]/.test(n.nodeValue)&&!ORIG.has(n))return;if(!ORIG.has(n))ORIG.set(n,n.nodeValue);const o=ORIG.get(n);const v=LANG==="en"?T(o):o;if(n.nodeValue!==v){SETV.set(n,v);n.nodeValue=v}return}
+ if(n.nodeType!==1||n.tagName==="SCRIPT"||n.tagName==="STYLE"||n.tagName==="TEXTAREA")return;
+ if(n.hasAttribute("placeholder")){if(!n.dataset.ph)n.dataset.ph=n.getAttribute("placeholder");const v=LANG==="en"?T(n.dataset.ph):n.dataset.ph;if(n.getAttribute("placeholder")!==v)n.setAttribute("placeholder",v)}
+ n.childNodes.forEach(trNode);
+}
+let _busy=false;
+const obs=new MutationObserver(ms=>{if(_busy)return;_busy=true;try{ms.forEach(m=>{if(m.type==="characterData"){if(SETV.get(m.target)===m.target.nodeValue)return;ORIG.delete(m.target);trNode(m.target)}else m.addedNodes.forEach(trNode)})}finally{_busy=false}});
+obs.observe(document.body,{childList:true,subtree:true,characterData:true});
+function setLang(l){LANG=l;try{localStorage.setItem("adm_lang",l)}catch(e){}document.documentElement.lang=l;_busy=true;trNode(document.body);_busy=false;
+ document.querySelectorAll(".lang b").forEach(b=>b.classList.toggle("on",b.dataset.l===l))}
+document.querySelectorAll(".lang b").forEach(b=>b.onclick=()=>setLang(b.dataset.l));
+const _confirm=window.confirm.bind(window);window.confirm=m=>_confirm(T(m));
+setLang(LANG);
+
 const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
- ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","🪙","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
+ ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
  ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
  ["APP DATA",[["rooms","🎙️","ভয়েস রুম","শীঘ্রই"],["gifts","🎁","গিফট","শীঘ্রই"],["games","🎲","গেম ডেটা","শীঘ্রই"]]],
 ];
 let current="dash";
-function drawNav(f=""){const q=f.toLowerCase();$("#navlist").innerHTML=NAV.map(([s,items])=>{const it=items.filter(i=>!q||i[2].toLowerCase().includes(q));if(!it.length)return"";return `<div class="sec">${s}</div>`+it.map(([k,ic,l,tag])=>`<button class="nav ${k===current?"act":""}" data-k="${k}">${ic} ${l}${tag?`<span class="tag">${tag}</span>`:""}</button>`).join("")}).join("")}
+function drawNav(f=""){const q=f.toLowerCase();$("#navlist").innerHTML=NAV.map(([s,items])=>{const it=items.filter(i=>!q||i[2].toLowerCase().includes(q)||T(i[2]).toLowerCase().includes(q));if(!it.length)return"";return `<div class="sec">${s}</div>`+it.map(([k,ic,l,tag])=>`<button class="nav ${k===current?"act":""}" data-k="${k}">${ic} ${l}${tag?`<span class="tag">${tag}</span>`:""}</button>`).join("")}).join("")}
 const openD=o=>{$("#drawer").classList.toggle("open",o);$("#shade").classList.toggle("open",o)};
 $("#ham").onclick=()=>openD(true);$("#shade").onclick=()=>openD(false);
 $("#nsearch").oninput=e=>drawNav(e.target.value);
