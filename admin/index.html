@@ -87,7 +87,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,addDoc,query,where,orderBy,limit,increment,serverTimestamp,writeBatch,getCountFromServer,getAggregateFromServer,sum,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,addDoc,query,where,orderBy,limit,increment,serverTimestamp,writeBatch,deleteDoc,deleteField,getCountFromServer,getAggregateFromServer,sum,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={apiKey:"AIzaSyAVpp9WD1k_R9g0Fvc_oNrzeVhqd8Odns0",authDomain:"ludomeet-fcea5.firebaseapp.com",projectId:"ludomeet-fcea5",storageBucket:"ludomeet-fcea5.firebasestorage.app",messagingSenderId:"805260737667",appId:"1:805260737667:web:ed2cbb6211aeaa7e41afb6"};
 const ADMINS=["allinbazarofficial@gmail.com"];
@@ -98,7 +98,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const toast=t=>{const e=$("#toast");e.textContent=T(t);e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3200)};
 const dt=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"};
 const VIPS=["111111", "222222", "333333", "444444", "555555", "666666", "777777", "888888", "999999", "123456", "234567", "345678", "456789", "654321", "765432", "876543", "987654", "100000", "200000", "300000", "400000", "500000", "600000", "700000", "800000", "900000", "121212", "131313", "151515", "181818", "191919", "202020", "232323", "525252", "585858", "686868", "520520", "521521", "168168", "888999", "666888", "999888", "100100", "200200", "500500", "123123", "112233", "778899", "808080", "909090"];
-const ROLES=[["bd","BD"],["admin","Admin"],["superAdmin","Super Admin"],["coinSeller","Coin Seller"],["payroll","Payroll / Portal"],["superSeller","Super Seller"],["management","Management"]];
+const ROLES=[["bd","BD"],["admin","Admin"],["superAdmin","Super Admin"],["primarySeller","Primary Seller"],["normalSeller","Normal Seller"],["beginnerSeller","Beginner Seller"],["coinSeller","Coin Seller"],["payroll","Payroll / Portal"],["seniorSeller","Senior Coin Seller"],["superSeller","Super Seller"],["management","Management"]];
 const vipOn=u=>!!(u&&u.vipId&&u.vipUntil&&u.vipUntil.toMillis()>Date.now());
 const ownId=u=>u?.userId||u?.playerId||"—";
 const shownId=u=>vipOn(u)?u.vipId:ownId(u);
@@ -136,6 +136,40 @@ const EN={
 "এখনো কোনো অ্যাকশন নেই":"No actions yet",
 "কয়েন / ডায়মন্ড দিন":"Give coins / diamonds",
 "পদ ও অনুমতি":"Roles & permissions",
+"BD আবেদন":"BD applications",
+"👤 পুরো প্রোফাইল":"👤 Full profile",
+"ইউজার প্রোফাইল":"User profile",
+"← ফিরে যান":"← Back",
+"সব ছবি মুছুন":"Delete all photos",
+"কোনো ছবি নেই (অ্যাপে লোগো দেখায়)":"No photos (app shows the logo)",
+"প্রোফাইলের তথ্য":"Profile details",
+"⚠ Warning নাম দিন":"⚠ Set name to Warning",
+"বায়ো":"Bio",
+"জন্মতারিখ":"Date of birth",
+"বয়স":"age",
+"লিঙ্গ":"Gender",
+"দেশ (২ অক্ষরের কোড, যেমন BD)":"Country (2-letter code, e.g. BD)",
+"সেভ করুন":"Save",
+"নাম বদলের ইতিহাস":"Name change history",
+"এখনো নাম বদল হয়নি":"No name changes yet",
+"আগের নাম":"Old name",
+"নতুন নাম":"New name",
+"অ্যাডমিন":"Admin",
+"ফ্রি":"Free",
+"এই ছবিটা মুছবেন?":"Delete this photo?",
+"এই ইউজারের সব ছবি মুছবেন? লোগো তার প্রোফাইল ছবি হবে।":"Delete all photos of this user? The logo becomes their photo.",
+"পরিবর্তন সেভ করবেন?":"Save changes?",
+"নাম লিখুন":"Enter a name",
+"অনুমোদিত":"Approved",
+"অনুমোদন":"Approve",
+"কোনো আবেদন নেই":"No applications",
+"যোগাযোগ":"Contact",
+"কারণ":"Reason",
+"প্রমাণ":"Proof",
+"প্রোফাইল":"Profile",
+"পদ":"Role",
+"নাম বদলের ফি (কয়েন)":"Name change fees (coins)",
+"ইউজারের আইডি বা Gmail":"User ID or Gmail",
 "লেভেল সেট করুন":"Set level",
 "নতুন লেভেল ১–২০০":"New level 1–200",
 "১ থেকে ২০০-এর মধ্যে লেভেল লিখুন":"Enter a level from 1 to 200",
@@ -279,7 +313,7 @@ setLang(LANG);
 const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
  ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
- ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
+ ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
  ["APP DATA",[["rooms","🎙️","ভয়েস রুম","শীঘ্রই"],["gifts","🎁","গিফট","শীঘ্রই"],["games","🎲","গেম ডেটা","শীঘ্রই"]]],
 ];
 let current="dash";
@@ -304,6 +338,7 @@ async function dash(){
  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;dash()});$("#rf").onclick=dash;
  try{
   const U=collection(db,"users"),W=collection(db,"withdrawals"),from=Timestamp.fromDate(rangeStart());
+  const revP=getAggregateFromServer(collection(db,"revenue"),{v:sum("amount")}).then(r=>r.data().v||0).catch(()=>0);
   const [all,neu,agg,pend,paid,banned]=await Promise.all([
    getCountFromServer(U),
    getCountFromServer(query(U,where("createdAt",">=",from))),
@@ -319,6 +354,7 @@ async function dash(){
   <div class="card"><div class="ttl">USERS</div><div class="grid">${st("মোট ইউজার",fmt(all.data().count),1)}${st("নতুন ইউজার (নির্বাচিত সময়)",fmt(neu.data().count))}${st("ব্যান করা",fmt(banned.data().count))}${st("মোট খেলা গেম",fmt(a.games))}</div></div>
   <div class="card"><div class="ttl">BANK · CIRCULATION</div><div class="grid">${st("কয়েন (সবার কাছে)",fmt(a.coins),1)}${st("ডায়মন্ড (Available)",fmt(a.dia))}${st("ডায়মন্ড (Locked)",fmt(a.lock))}${st("Lifetime ডায়মন্ড",fmt(a.life))}</div></div>
   <div class="card"><div class="ttl">PAYROLL</div><div class="grid">${st("পেন্ডিং অর্ডার",fmt(pc.data().count),1)}${st("পেন্ডিং পরিমাণ","$"+(p.u||0).toFixed(2))}${st("পরিশোধিত অর্ডার",fmt(pdc.data().count))}${st("মোট পরিশোধ","$"+(pd.u||0).toFixed(2))}</div></div>
+  <div class="card"><div class="ttl">PLATFORM INCOME</div><div class="grid">${st("নাম বদলের ফি (কয়েন)",fmt(await revP),1)}</div></div>
   <div class="card"><div class="ttl">ROOMS</div><div class="grid">${st("Active Audio Rooms","—")}${st("আজকের মোট রুম","—")}</div><div class="muted" style="margin-top:10px">ভয়েস রুম চালু হলে এখানে হিসাব দেখাবে।</div></div>`;
  }catch(e){$("#dstats").innerHTML=`<div class="card empty">লোড করা যায়নি: ${esc(e.message)}</div>`}
 }
@@ -345,7 +381,7 @@ function renderUsers(docs){
 }
 async function manageUser(uid){
  const s=await getDoc(doc(db,"users",uid));const u=s.data();cache[uid]=u;
- modal(`<h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))}${vipOn(u)?` (VIP · আসল ${esc(ownId(u))})`:""}</span></h3>
+ modal(`<div class="row" style="justify-content:flex-end"><button class="btn o sm" id="fullp">👤 পুরো প্রোফাইল</button></div><h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))}${vipOn(u)?` (VIP · আসল ${esc(ownId(u))})`:""}</span></h3>
  <div class="muted">${esc(u.email)}</div>
  <div class="grid" style="margin:14px 0;grid-template-columns:repeat(3,1fr)"><div class="stat"><span>কয়েন</span><b>${fmt(u.coins)}</b></div><div class="stat"><span>ডায়মন্ড</span><b>${fmt(u.diamonds)}</b></div><div class="stat"><span>Locked</span><b>${fmt(u.lockedDiamonds)}</b></div></div>
  <label class="f">পরিমাণ</label><input class="inp" id="amt" type="number" min="1" placeholder="যেমন 10000" style="width:100%">
@@ -358,6 +394,7 @@ async function manageUser(uid){
  <div class="row"><input class="inp" id="lvn" type="number" min="1" max="200" placeholder="নতুন লেভেল ১–২০০" style="flex:1"><button class="btn g" id="lvsave">লেভেল সেট করুন</button></div>`);
  $("#lvsave").onclick=()=>setLevel(uid);
  $("#rsave").onclick=()=>saveRoles(uid);
+ $("#fullp").onclick=()=>{closeM();userProfile(uid)};
  $("#mclose").onclick=closeM;
  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(uid,b.dataset.a));
 }
@@ -533,8 +570,84 @@ async function vipRevoke(o){
  try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipId:"",vipUntil:null});syncProfile(b,o.x.uid,{vipId:"",vipUntil:null});b.set(doc(db,"ids",o.v),{uid:null,until:null},{merge:true});await b.commit();
   await log("vip-revoke",o.v,{name:o.u.name});toast("হয়ে গেছে ✓");vip()}catch(e){toast("ব্যর্থ: "+e.message)}
 }
+// ---------- Full user profile ----------
+const PRIVATE_LOGO="data:image/webp;base64,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";
+function lightbox(src){modal(`<img src="${src}" style="width:100%;border-radius:14px"><div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn" id="mclose">বন্ধ</button></div>`);$("#mclose").onclick=closeM}
+async function userProfile(uid){
+ view(`<div class="card empty">লোড হচ্ছে…</div>`);$("#ptitle").textContent="ইউজার প্রোফাইল";
+ try{
+  const [us,ps,fo,fi]=await Promise.all([getDoc(doc(db,"users",uid)),getDoc(doc(db,"profiles",uid)),
+   getCountFromServer(collection(db,"users",uid,"followers")).catch(()=>null),getCountFromServer(collection(db,"users",uid,"following")).catch(()=>null)]);
+  const u=us.data()||{};cache[uid]=u;const ids=u.photos||[];
+  const photos=await Promise.all(ids.map(id=>getDoc(doc(db,"profiles",uid,"photos",id)).then(d=>({id,data:d.data()?.data||"",thumb:d.data()?.thumb||""})).catch(()=>({id,data:"",thumb:""}))));
+  let hist=[];try{hist=(await getDocs(query(collection(db,"users",uid,"nameChanges"),orderBy("at","desc"),limit(30)))).docs.map(d=>d.data())}catch(e){}
+  const bd=u.birthDate?.toDate?u.birthDate.toDate():null;const bdStr=bd?bd.toISOString().slice(0,10):"";
+  const age=bd?Math.floor((Date.now()-bd.getTime())/31557600000):"—";
+  view(`<div class="card"><div class="row" style="align-items:center">
+   <img class="av" style="width:72px;height:72px" src="${u.photoData?"data:image/jpeg;base64,"+u.photoData:PRIVATE_LOGO}">
+   <div style="flex:1"><h2 style="margin:0">${esc(u.name)}</h2><div class="muted">ID ${esc(shownId(u))}${vipOn(u)?` · VIP (আসল ${esc(ownId(u))})`:""} · ${esc(u.email||"")}</div>
+   <div style="margin-top:6px"><span class="badge lv">Lv ${lvl(u)}</span> ${(u.roles||[]).map(r=>`<span class="badge role">${esc((ROLES.find(x=>x[0]===r)||[r,r])[1])}</span>`).join(" ")} ${u.banned?'<span class="badge ban">BANNED</span>':""}</div></div>
+   <button class="btn" id="back">← ফিরে যান</button></div>
+   <div class="grid" style="margin-top:14px;grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><span>Followers</span><b>${fo?fmt(fo.data().count):"—"}</b></div><div class="stat"><span>Following</span><b>${fi?fmt(fi.data().count):"—"}</b></div>
+    <div class="stat"><span>কয়েন</span><b>${fmt(u.coins)}</b></div><div class="stat"><span>ডায়মন্ড</span><b>${fmt(u.diamonds)}</b></div></div></div>
+  <div class="card"><div class="row" style="align-items:center"><div class="ttl" style="flex:1">ছবি (${photos.length}/6)</div>${photos.length?'<button class="btn r sm" id="delall">সব ছবি মুছুন</button>':""}</div>
+   ${photos.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px">${photos.map((p,i)=>`<div style="position:relative"><img data-big="${i}" src="data:image/jpeg;base64,${p.thumb||p.data}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;cursor:zoom-in">${i===0?'<span class="badge" style="position:absolute;left:6px;top:6px;background:#ffc93c">Main</span>':""}<button class="btn r sm" data-delp="${p.id}" style="position:absolute;right:6px;top:6px">✕</button></div>`).join("")}</div>`:'<div class="muted" style="margin-top:8px">কোনো ছবি নেই (অ্যাপে লোগো দেখায়)</div>'}</div>
+  <div class="card" style="max-width:640px"><div class="ttl">প্রোফাইলের তথ্য</div>
+   <label class="f">নাম</label><div class="row"><input class="inp" id="pname" value="${esc(u.name)}" style="flex:1"><button class="btn r" id="warn">⚠ Warning নাম দিন</button></div>
+   <label class="f">বায়ো</label><textarea class="inp" id="pbio" rows="3" style="width:100%">${esc(u.bio||"")}</textarea>
+   <div class="row"><div style="flex:1"><label class="f">জন্মতারিখ (বয়স ${age})</label><input class="inp" id="pbd" type="date" value="${bdStr}" style="width:100%"></div>
+   <div style="flex:1"><label class="f">লিঙ্গ</label><select class="inp" id="pg" style="width:100%"><option value="">—</option><option value="male" ${u.gender==="male"?"selected":""}>Male</option><option value="female" ${u.gender==="female"?"selected":""}>Female</option></select></div>
+   <div style="flex:1"><label class="f">দেশ (২ অক্ষরের কোড, যেমন BD)</label><input class="inp" id="pc" maxlength="2" value="${esc(u.country||"")}" style="width:100%;text-transform:uppercase"></div></div>
+   <button class="btn o" id="psv" style="margin-top:14px">সেভ করুন</button></div>
+  <div class="card"><div class="ttl">নাম বদলের ইতিহাস</div>${hist.length?`<table><tr><th>সময়</th><th>আগের নাম</th><th>নতুন নাম</th><th>ফি</th><th>কে</th></tr>${hist.map(h=>`<tr><td>${dt(h.at)}</td><td>${esc(h.from)}</td><td><b>${esc(h.to)}</b></td><td>${h.fee?fmt(h.fee)+" কয়েন":"ফ্রি"}</td><td>${h.by==="admin"?"অ্যাডমিন":"ইউজার"}</td></tr>`).join("")}</table>`:'<div class="muted">এখনো নাম বদল হয়নি</div>'}</div>`);
+  $("#back").onclick=()=>go(current);
+  document.querySelectorAll("[data-big]").forEach(im=>im.onclick=()=>{const p=photos[+im.dataset.big];lightbox("data:image/jpeg;base64,"+(p.data||p.thumb))});
+  const savePhotos=async(keep,removed)=>{const b=writeBatch(db);let thumb=null;if(keep.length){const f=photos.find(p=>p.id===keep[0]);thumb=f?.thumb||null}
+   const fields={photos:keep,photoData:thumb};b.update(doc(db,"users",uid),fields);syncProfile(b,uid,fields);removed.forEach(id=>b.delete(doc(db,"profiles",uid,"photos",id)));await b.commit()};
+  document.querySelectorAll("[data-delp]").forEach(bt=>bt.onclick=async()=>{if(!confirm("এই ছবিটা মুছবেন?"))return;const id=bt.dataset.delp;
+   try{await savePhotos(ids.filter(x=>x!==id),[id]);await log("photo-remove",shownId(u),{name:u.name});toast("হয়ে গেছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}});
+  if($("#delall"))$("#delall").onclick=async()=>{if(!confirm("এই ইউজারের সব ছবি মুছবেন? লোগো তার প্রোফাইল ছবি হবে।"))return;
+   try{await savePhotos([],ids);await log("photo-remove-all",shownId(u),{name:u.name,count:ids.length});toast("হয়ে গেছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}};
+  const setName=async(name,warning)=>{const b=writeBatch(db);const f={name,nameChangedAt:serverTimestamp(),updatedAt:serverTimestamp()};b.update(doc(db,"users",uid),f);syncProfile(b,uid,{name});
+   b.set(doc(collection(db,"users",uid,"nameChanges")),{from:u.name||"",to:name,fee:0,by:"admin",at:serverTimestamp()});
+   if(warning)b.set(doc(collection(db,"users",uid,"inbox")),{title:"Warning",body:"Your name was changed by LudoMeet because it broke our rules. Changing it again within 30 days costs 10,000 coins.",kind:"warning",at:serverTimestamp()});
+   await b.commit();await log(warning?"name-warning":"name-set",shownId(u),{from:u.name,to:name})};
+  $("#warn").onclick=async()=>{if(!confirm(`${u.name}-এর নাম "Warning" করবেন? তাকে সিস্টেম মেসেজে জানানো হবে।`))return;try{await setName("Warning",true);toast("হয়ে গেছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}};
+  $("#psv").onclick=async()=>{const name=$("#pname").value.trim(),bio=$("#pbio").value.trim(),g=$("#pg").value,c=$("#pc").value.trim().toUpperCase(),bdv=$("#pbd").value;
+   if(!name){toast("নাম লিখুন");return}if(!confirm("পরিবর্তন সেভ করবেন?"))return;
+   try{if(name!==u.name)await setName(name,false);
+    const f={bio,gender:g,country:c,birthDate:bdv?Timestamp.fromDate(new Date(bdv+"T00:00:00")):null};
+    const b=writeBatch(db);b.update(doc(db,"users",uid),{...f,updatedAt:serverTimestamp()});syncProfile(b,uid,f);await b.commit();
+    await log("profile-edit",shownId(u),{fields:Object.keys(f)});toast("সেভ হয়েছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}};
+ }catch(e){view(`<div class="card empty">লোড করা যায়নি: ${esc(e.message)}</div>`)}
+}
+
+// ---------- BD applications ----------
+let atab="pending";
+async function apps(){
+ view(`<div class="card"><div class="chips">${[["pending","পেন্ডিং"],["approved","অনুমোদিত"],["rejected","বাতিল"]].map(([k,l])=>`<button class="chip ${k===atab?"act":""}" data-t="${k}">${l}</button>`).join("")}</div></div><div class="card"><div class="tw" id="alist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{atab=b.dataset.t;apps()});
+ try{const s=await getDocs(query(collection(db,"applications"),where("status","==",atab),limit(200)));
+  const rows=s.docs.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0));
+  if(!rows.length){$("#alist").innerHTML=`<div class="empty">কোনো আবেদন নেই</div>`;return}
+  $("#alist").innerHTML=`<table><tr><th>সময়</th><th>ইউজার</th><th>পদ</th><th>যোগাযোগ</th><th>কারণ</th><th>প্রমাণ</th><th></th></tr>${rows.map(d=>{const a=d.data();return `<tr><td>${dt(a.at)}</td><td><b>${esc(a.name)}</b><div class="muted" style="font-size:12px">ID ${esc(a.userId)} · ${esc(a.country||"")}</div></td><td><b>${esc(a.roleName)}</b>${a.deposit?`<div class="muted" style="font-size:12px">$${fmt(a.deposit)} → ${fmt(a.coins)}</div>`:""}</td><td style="max-width:180px;word-break:break-all">${esc(a.contact)}</td><td style="max-width:240px">${esc(a.reason)}${a.experience?`<div class="muted" style="font-size:12px">${esc(a.experience)}</div>`:""}${a.roomId?`<div class="muted" style="font-size:12px">Room ${esc(a.roomId)}</div>`:""}</td><td>${a.proof?`<img data-proof="${d.id}" src="data:image/jpeg;base64,${a.proof}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:zoom-in">`:"—"}</td><td>${a.status==="pending"?`<button class="btn sm g" data-ok="${d.id}">অনুমোদন</button> <button class="btn sm r" data-no="${d.id}">বাতিল</button>`:""} <button class="btn sm" data-up="${a.uid}">প্রোফাইল</button></td></tr>`}).join("")}</table>`;
+  document.querySelectorAll("[data-proof]").forEach(i=>i.onclick=()=>lightbox(i.src));
+  document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
+  const decide=async(id,ok)=>{const a=rows.find(r=>r.id===id).data();
+   if(!confirm(ok?`${a.name}-কে "${a.roleName}" পদ দেবেন?`:`${a.name}-এর আবেদন বাতিল করবেন?`))return;
+   try{const b=writeBatch(db);b.update(doc(db,"applications",id),{status:ok?"approved":"rejected",decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email});
+    if(ok){const us=await getDoc(doc(db,"users",a.uid));const r=new Set(us.data()?.roles||[]);r.add(a.role);const roles=[...r];
+     b.update(doc(db,"users",a.uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles})}
+    b.set(doc(collection(db,"users",a.uid,"inbox")),{title:ok?"Application approved":"Application rejected",body:ok?`Your application for ${a.roleName} was approved. Your dashboard is now open.`:`Your application for ${a.roleName} was not approved.`,kind:"application",at:serverTimestamp()});
+    await b.commit();await log(ok?"app-approve":"app-reject",a.userId,{role:a.role,name:a.name});toast("হয়ে গেছে ✓");apps()}catch(e){toast("ব্যর্থ: "+e.message)}};
+  document.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>decide(b.dataset.ok,true));
+  document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>decide(b.dataset.no,false));
+ }catch(e){$("#alist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
-const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles};
+const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps};
 
 // ---------- Auth ----------
 $("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};
