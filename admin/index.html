@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LudoMeet · Admin Portal</title>
+<link rel="icon" href="data:image/webp;base64,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">
+<style>
+:root{--bg:#fdf6f0;--card:#fff;--mint:#e8f6f0;--mint2:#d3efe3;--ink:#24323a;--muted:#7b8a91;--line:#eadfd6;--accent:#ff7a45;--accent2:#ffe3d6;--green:#1f9d6b;--red:#e24b4b;--blue:#3b6fe0}
+*{box-sizing:border-box}body{margin:0;font-family:"Hind Siliguri","Noto Sans Bengali",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+button{font:inherit;cursor:pointer}input,select,textarea{font:inherit}
+.top{position:sticky;top:0;z-index:5;background:var(--mint);border-bottom:1px solid var(--mint2);display:flex;align-items:center;gap:14px;padding:14px 22px}
+.top .ham{border:0;background:none;font-size:24px;color:var(--ink)}
+.top .kick{font-size:12px;letter-spacing:.25em;color:var(--accent);font-weight:700}
+.top h1{margin:2px 0 0;font-size:26px;font-weight:600}
+.top .sp{flex:1}.pill{background:#cdebdc;color:#1d6b4c;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:.08em}
+.btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 18px;color:var(--ink)}
+.btn.o{background:var(--accent);border-color:var(--accent);color:#fff}.btn.g{background:var(--green);border-color:var(--green);color:#fff}.btn.r{background:var(--red);border-color:var(--red);color:#fff}.btn.sm{padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.drawer{position:fixed;inset:0 auto 0 0;width:270px;background:#fff;box-shadow:4px 0 24px #0002;transform:translateX(-105%);transition:.2s;z-index:20;overflow:auto;padding:16px}
+.drawer.open{transform:none}.shade{position:fixed;inset:0;background:#0003;z-index:15;display:none}.shade.open{display:block}
+.brand{display:flex;gap:10px;align-items:center;margin-bottom:14px}.brand img{width:44px;height:44px;border-radius:12px}.brand small{display:block;color:var(--accent);font-size:11px;letter-spacing:.2em;font-weight:700}.brand b{font-size:18px}
+.drawer input{width:100%;padding:9px 14px;border:1px solid var(--mint2);background:#f6fbf9;border-radius:12px;margin-bottom:10px}
+.sec{font-size:11px;letter-spacing:.2em;color:var(--muted);margin:16px 6px 6px;font-weight:700}
+.nav{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;padding:10px 12px;border-radius:12px;color:#3b4a52;font-size:15px}
+.nav:hover{background:#f5f1ec}.nav.act{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 4px 12px #ff7a4555}
+.nav .tag{margin-left:auto;font-size:10px;background:#fff1ea;color:var(--accent);padding:2px 6px;border-radius:6px}
+main{max-width:1180px;margin:0 auto;padding:22px}
+.card{background:var(--card);border:1px solid #f0e6de;border-radius:22px;padding:20px;margin-bottom:18px;box-shadow:0 2px 10px #0000000a}
+.ttl{font-size:13px;letter-spacing:.2em;color:var(--blue);font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.ttl:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--blue)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.stat{border:1px solid #efe5dc;border-radius:16px;padding:14px 16px;background:#fffdfb}
+.stat.hl{background:var(--mint);border-color:#bfe3d2}
+.stat span{font-size:13px;color:var(--muted)}.stat b{display:block;font-size:24px;margin-top:6px;color:#7a2e12;font-weight:600}
+.stat.hl b{color:#1d6b4c}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid #cfe9dc;background:#f2fbf6;border-radius:999px;padding:8px 16px}.chip.act{background:var(--accent);border-color:var(--accent);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #f1e8e0;vertical-align:middle}th{color:var(--muted);font-weight:600;font-size:12px}
+.tw{overflow:auto}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.inp{padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;min-width:200px}
+.badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#eee}.badge.pending{background:#fff1d6;color:#a15c00}.badge.paid{background:#d9f5e7;color:#1d6b4c}.badge.rejected{background:#fde0e0;color:#b02a2a}.badge.ban{background:#fde0e0;color:#b02a2a}.badge.seller{background:#e3ecff;color:#2848a8}
+.muted{color:var(--muted)}.av{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#eee;vertical-align:middle}
+.login{min-height:100vh;display:grid;place-items:center}.login .card{width:min(420px,92vw);text-align:center;padding:34px}
+.login img{width:84px;height:84px;border-radius:20px}.gbtn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:12px 22px;font-weight:600;margin-top:18px}
+.modal{position:fixed;inset:0;background:#0005;display:none;place-items:center;z-index:30}.modal.open{display:grid}
+.modal .card{width:min(520px,94vw);max-height:90vh;overflow:auto}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#24323a;color:#fff;padding:12px 20px;border-radius:14px;display:none;z-index:40}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+</style>
+</head>
+<body>
+<div id="login" class="login" style="display:none">
+  <div class="card">
+    <img src="data:image/webp;base64,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" alt="">
+    <div class="kick" style="margin-top:14px;font-size:12px;letter-spacing:.25em;color:var(--accent);font-weight:700">LUDOMEET</div>
+    <h2 style="margin:6px 0">অ্যাডমিন পোর্টাল</h2>
+    <div class="muted">শুধু অনুমোদিত অ্যাডমিন Gmail দিয়ে লগইন করা যাবে</div>
+    <button class="gbtn" id="gin"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Google দিয়ে লগইন</button>
+    <div id="lerr" class="muted" style="margin-top:14px;color:var(--red)"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="top">
+    <button class="ham" id="ham">☰</button>
+    <div><div class="kick">OPERATIONS CONSOLE</div><h1 id="ptitle">ড্যাশবোর্ড</h1></div>
+    <div class="sp"></div><span class="pill">ADMIN</span>
+    <button class="btn" id="out">⎋ লগআউট</button>
+  </div>
+  <div class="shade" id="shade"></div>
+  <nav class="drawer" id="drawer">
+    <div class="brand"><img src="data:image/webp;base64,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" alt=""><div><small>LUDOMEET</small><b>Admin Portal</b></div></div>
+    <input id="nsearch" placeholder="🔍 সেকশন খুঁজুন">
+    <div id="navlist"></div>
+  </nav>
+  <main id="view"></main>
+</div>
+
+<div class="modal" id="modal"><div class="card" id="mbody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,addDoc,query,where,orderBy,limit,increment,serverTimestamp,writeBatch,getCountFromServer,getAggregateFromServer,sum,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const cfg={apiKey:"AIzaSyAVpp9WD1k_R9g0Fvc_oNrzeVhqd8Odns0",authDomain:"ludomeet-fcea5.firebaseapp.com",projectId:"ludomeet-fcea5",storageBucket:"ludomeet-fcea5.firebasestorage.app",messagingSenderId:"805260737667",appId:"1:805260737667:web:ed2cbb6211aeaa7e41afb6"};
+const ADMINS=["allinbazarofficial@gmail.com"];
+const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app);
+const $=s=>document.querySelector(s);
+const fmt=n=>Number(n||0).toLocaleString("en-US");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const toast=t=>{const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3200)};
+const dt=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"};
+function playerId(uid){let h=0;for(const c of uid)h=(h*31+c.charCodeAt(0))&0x7fffffff;return String(10000000+h%90000000)}
+async function log(action,target,details){try{await addDoc(collection(db,"adminLogs"),{action,target,details,by:auth.currentUser.email,at:serverTimestamp()})}catch(e){}}
+
+const NAV=[
+ ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
+ ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","🪙","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
+ ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
+ ["APP DATA",[["rooms","🎙️","ভয়েস রুম","শীঘ্রই"],["gifts","🎁","গিফট","শীঘ্রই"],["games","🎲","গেম ডেটা","শীঘ্রই"]]],
+];
+let current="dash";
+function drawNav(f=""){const q=f.toLowerCase();$("#navlist").innerHTML=NAV.map(([s,items])=>{const it=items.filter(i=>!q||i[2].toLowerCase().includes(q));if(!it.length)return"";return `<div class="sec">${s}</div>`+it.map(([k,ic,l,tag])=>`<button class="nav ${k===current?"act":""}" data-k="${k}">${ic} ${l}${tag?`<span class="tag">${tag}</span>`:""}</button>`).join("")}).join("")}
+const openD=o=>{$("#drawer").classList.toggle("open",o);$("#shade").classList.toggle("open",o)};
+$("#ham").onclick=()=>openD(true);$("#shade").onclick=()=>openD(false);
+$("#nsearch").oninput=e=>drawNav(e.target.value);
+$("#navlist").onclick=e=>{const b=e.target.closest(".nav");if(!b)return;go(b.dataset.k);openD(false)};
+function go(k){current=k;drawNav($("#nsearch").value);const n=NAV.flatMap(x=>x[1]).find(i=>i[0]===k);$("#ptitle").textContent=n?n[2]:"";(PAGES[k]||soon)()}
+const view=h=>{$("#view").innerHTML=h};
+function modal(h){$("#mbody").innerHTML=h;$("#modal").classList.add("open")}
+const closeM=()=>$("#modal").classList.remove("open");
+$("#modal").onclick=e=>{if(e.target.id==="modal")closeM()};
+
+// ---------- Dashboard ----------
+let range="today";
+function rangeStart(){const n=new Date();const d=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()));if(range==="yesterday")d.setUTCDate(d.getUTCDate()-1);if(range==="week")d.setUTCDate(d.getUTCDate()-6);if(range==="month")d.setUTCDate(d.getUTCDate()-29);return d}
+async function dash(){
+ view(`<div class="card"><div class="ttl" style="color:var(--accent)">UTC RESET</div><div class="muted" style="margin-bottom:12px">প্রতিদিনের হিসাব শুরু হয় 00:00 UTC (বাংলাদেশ সময় সকাল ৬টা)।</div>
+ <div class="chips">${[["today","আজ"],["yesterday","গতকাল"],["week","এই সপ্তাহ"],["month","গত ৩০ দিন"]].map(([k,l])=>`<button class="chip ${k===range?"act":""}" data-r="${k}">${l}</button>`).join("")}<button class="chip" id="rf">⟳ রিফ্রেশ</button></div></div>
+ <div id="dstats"><div class="card empty">লোড হচ্ছে…</div></div>`);
+ document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;dash()});$("#rf").onclick=dash;
+ try{
+  const U=collection(db,"users"),W=collection(db,"withdrawals"),from=Timestamp.fromDate(rangeStart());
+  const [all,neu,agg,pend,paid,banned]=await Promise.all([
+   getCountFromServer(U),
+   getCountFromServer(query(U,where("createdAt",">=",from))),
+   getAggregateFromServer(U,{coins:sum("coins"),dia:sum("diamonds"),lock:sum("lockedDiamonds"),life:sum("lifetimeDiamonds"),games:sum("gamesPlayed")}),
+   getAggregateFromServer(query(W,where("status","==","pending")),{d:sum("diamonds"),u:sum("usd")}),
+   getAggregateFromServer(query(W,where("status","==","paid")),{d:sum("diamonds"),u:sum("usd")}),
+   getCountFromServer(query(U,where("banned","==",true)))]);
+  const [pc,pdc]=await Promise.all([getCountFromServer(query(W,where("status","==","pending"))),getCountFromServer(query(W,where("status","==","paid")))]);
+  const a=agg.data(),p=pend.data(),pd=paid.data();
+  const st=(l,v,hl)=>`<div class="stat ${hl?"hl":""}"><span>${l}</span><b>${v}</b></div>`;
+  $("#dstats").innerHTML=`
+  <div class="card"><div class="ttl">USERS</div><div class="grid">${st("মোট ইউজার",fmt(all.data().count),1)}${st("নতুন ইউজার (নির্বাচিত সময়)",fmt(neu.data().count))}${st("ব্যান করা",fmt(banned.data().count))}${st("মোট খেলা গেম",fmt(a.games))}</div></div>
+  <div class="card"><div class="ttl">BANK · CIRCULATION</div><div class="grid">${st("কয়েন (সবার কাছে)",fmt(a.coins),1)}${st("ডায়মন্ড (Available)",fmt(a.dia))}${st("ডায়মন্ড (Locked)",fmt(a.lock))}${st("Lifetime ডায়মন্ড",fmt(a.life))}</div></div>
+  <div class="card"><div class="ttl">PAYROLL</div><div class="grid">${st("পেন্ডিং অর্ডার",fmt(pc.data().count),1)}${st("পেন্ডিং পরিমাণ","$"+(p.u||0).toFixed(2))}${st("পরিশোধিত অর্ডার",fmt(pdc.data().count))}${st("মোট পরিশোধ","$"+(pd.u||0).toFixed(2))}</div></div>
+  <div class="card"><div class="ttl">ROOMS</div><div class="grid">${st("Active Audio Rooms","—")}${st("আজকের মোট রুম","—")}</div><div class="muted" style="margin-top:10px">ভয়েস রুম চালু হলে এখানে হিসাব দেখাবে।</div></div>`;
+ }catch(e){$("#dstats").innerHTML=`<div class="card empty">লোড করা যায়নি: ${esc(e.message)}</div>`}
+}
+
+// ---------- Users ----------
+async function users(){
+ view(`<div class="card"><div class="row"><input class="inp" id="uq" placeholder="প্লেয়ার আইডি বা Gmail লিখুন" style="flex:1"><button class="btn o" id="ugo">খুঁজুন</button><button class="btn" id="uall">সর্বশেষ ৫০ জন</button></div></div><div class="card"><div class="tw" id="ulist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ $("#ugo").onclick=searchUsers;$("#uq").onkeydown=e=>{if(e.key==="Enter")searchUsers()};$("#uall").onclick=()=>listUsers(query(collection(db,"users"),orderBy("createdAt","desc"),limit(50)));
+ listUsers(query(collection(db,"users"),orderBy("createdAt","desc"),limit(50)));
+}
+async function searchUsers(){const q=$("#uq").value.trim();if(!q)return;const U=collection(db,"users");
+ let s=await getDocs(query(U,where(q.includes("@")?"email":"playerId","==",q)));
+ if(s.empty&&!q.includes("@")){const all=await getDocs(query(U,limit(1000)));const hit=all.docs.filter(d=>playerId(d.id)===q);renderUsers(hit);return}
+ renderUsers(s.docs)}
+async function listUsers(q){try{const s=await getDocs(q);renderUsers(s.docs)}catch(e){$("#ulist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+let cache={};
+function renderUsers(docs){
+ if(!docs.length){$("#ulist").innerHTML=`<div class="empty">কোনো ইউজার পাওয়া যায়নি</div>`;return}
+ docs.forEach(d=>{cache[d.id]=d.data();if(!d.data().playerId)updateDoc(doc(db,"users",d.id),{playerId:playerId(d.id)}).catch(()=>{})});
+ $("#ulist").innerHTML=`<table><tr><th>ইউজার</th><th>আইডি</th><th>কয়েন</th><th>ডায়মন্ড</th><th>Locked</th><th>দেশ</th><th>যোগ দিয়েছে</th><th></th></tr>${docs.map(d=>{const u=d.data();return `<tr><td>${u.photoUrl?`<img class="av" src="${esc(u.photoUrl)}">`:""} <b>${esc(u.name)}</b> ${u.banned?'<span class="badge ban">BANNED</span>':""}${u.coinSeller?' <span class="badge seller">SELLER</span>':""}<div class="muted" style="font-size:12px">${esc(u.email)}</div></td><td>${playerId(d.id)}</td><td>${fmt(u.coins)}</td><td>${fmt(u.diamonds)}</td><td>${fmt(u.lockedDiamonds)}</td><td>${esc(u.country||"—")}</td><td>${dt(u.createdAt)}</td><td><button class="btn sm o" data-u="${d.id}">ম্যানেজ</button></td></tr>`}).join("")}</table>`;
+ document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>manageUser(b.dataset.u));
+}
+async function manageUser(uid){
+ const s=await getDoc(doc(db,"users",uid));const u=s.data();cache[uid]=u;
+ modal(`<h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${playerId(uid)}</span></h3>
+ <div class="muted">${esc(u.email)}</div>
+ <div class="grid" style="margin:14px 0;grid-template-columns:repeat(3,1fr)"><div class="stat"><span>কয়েন</span><b>${fmt(u.coins)}</b></div><div class="stat"><span>ডায়মন্ড</span><b>${fmt(u.diamonds)}</b></div><div class="stat"><span>Locked</span><b>${fmt(u.lockedDiamonds)}</b></div></div>
+ <label class="f">পরিমাণ</label><input class="inp" id="amt" type="number" min="1" placeholder="যেমন 10000" style="width:100%">
+ <label class="f">কারণ (লগে থাকবে)</label><input class="inp" id="why" placeholder="যেমন: বোনাস, ভুল সংশোধন" style="width:100%">
+ <div class="row" style="margin-top:14px"><button class="btn g" data-a="coin+">+ কয়েন দিন</button><button class="btn r" data-a="coin-">− কয়েন কাটুন</button><button class="btn g" data-a="dia+">+ ডায়মন্ড দিন</button><button class="btn r" data-a="dia-">− ডায়মন্ড কাটুন</button></div>
+ <div class="row" style="margin-top:14px"><button class="btn" data-a="ban">${u.banned?"আনব্যান করুন":"ব্যান করুন"}</button><button class="btn" data-a="seller">${u.coinSeller?"সেলার বাতিল":"কয়েন সেলার বানান"}</button><button class="btn" id="mclose">বন্ধ</button></div>`);
+ $("#mclose").onclick=closeM;
+ document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(uid,b.dataset.a));
+}
+async function userAction(uid,a){
+ const u=cache[uid],n=Math.floor(Number($("#amt")?.value||0)),why=$("#why")?.value||"";
+ const ref=doc(db,"users",uid);
+ try{
+  if(a==="ban"||a==="seller"){const f=a==="ban"?"banned":"coinSeller";await updateDoc(ref,{[f]:!u[f]});await log(a,playerId(uid),{to:!u[f],why});toast("সেভ হয়েছে");closeM();refresh();return}
+  if(!(n>0)){toast("সঠিক পরিমাণ লিখুন");return}
+  if(a==="coin-"&&n>(u.coins||0)){toast("এত কয়েন নেই");return}
+  if(a==="dia-"&&n>(u.diamonds||0)){toast("এত ডায়মন্ড নেই");return}
+  if(!confirm(`নিশ্চিত? ${a} ${fmt(n)} → ${u.name}`))return;
+  const upd={"coin-":{coins:increment(-n)},"dia+":{diamonds:increment(n),lifetimeDiamonds:increment(n)},"dia-":{diamonds:increment(-n)}};
+  await updateDoc(ref,{...(a==="coin+"?{coins:increment(n)}:upd[a]),updatedAt:serverTimestamp()});
+  await log(a,playerId(uid),{amount:n,why,name:u.name});toast("হয়ে গেছে ✓");closeM();refresh();
+ }catch(e){toast("ব্যর্থ: "+e.message)}
+}
+function refresh(){(PAGES[current]||soon)()}
+async function banned(){view(`<div class="card"><div class="tw" id="ulist"><div class="empty">লোড হচ্ছে…</div></div></div>`);listUsers(query(collection(db,"users"),where("banned","==",true),limit(200)))}
+
+// ---------- Payroll ----------
+let wtab="pending";
+async function payroll(){
+ view(`<div class="card"><div class="chips">${[["pending","পেন্ডিং"],["paid","পরিশোধিত"],["rejected","বাতিল"]].map(([k,l])=>`<button class="chip ${k===wtab?"act":""}" data-w="${k}">${l}</button>`).join("")}</div></div><div class="card"><div class="tw" id="wlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ document.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{wtab=b.dataset.w;payroll()});
+ try{const s=await getDocs(query(collection(db,"withdrawals"),where("status","==",wtab),limit(200)));
+  const rows=s.docs.sort((a,b)=>(b.data().createdAt?.seconds||0)-(a.data().createdAt?.seconds||0));
+  if(!rows.length){$("#wlist").innerHTML=`<div class="empty">কোনো অর্ডার নেই</div>`;return}
+  $("#wlist").innerHTML=`<table><tr><th>সময়</th><th>ইউজার</th><th>পদ্ধতি</th><th>অ্যাকাউন্ট</th><th>ডায়মন্ড</th><th>টাকা</th><th>অবস্থা</th><th></th></tr>${rows.map(d=>{const w=d.data(),x=w.details||{};return `<tr><td>${dt(w.createdAt)}</td><td><b>${esc(w.name)}</b><div class="muted" style="font-size:12px">ID ${esc(w.playerId)} · ${esc(w.country)}</div></td><td>${esc(w.method)}${x.network?` <span class="muted">(${esc(x.network)})</span>`:""}</td><td style="max-width:220px;word-break:break-all"><code>${esc(x.walletAddress||x.binanceId||"")}</code><div class="muted" style="font-size:12px">${esc((x.firstName||"")+" "+(x.lastName||""))}</div></td><td>${fmt(w.diamonds)}</td><td><b>$${Number(w.usd||0).toFixed(2)}</b></td><td><span class="badge ${esc(w.status)}">${esc(w.status).toUpperCase()}</span></td><td>${w.status==="pending"?`<button class="btn sm g" data-p="${d.id}">Paid</button> <button class="btn sm r" data-x="${d.id}">বাতিল</button>`:""}</td></tr>`}).join("")}</table>`;
+  document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>settle(b.dataset.p,true,rows));
+  document.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>settle(b.dataset.x,false,rows));
+ }catch(e){$("#wlist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+async function settle(id,paid,rows){
+ const w=rows.find(r=>r.id===id).data();
+ if(!confirm(paid?`$${Number(w.usd).toFixed(2)} পাঠিয়েছেন? Paid করবেন?`:`অর্ডার বাতিল করবেন? ${fmt(w.diamonds)} ডায়মন্ড ইউজারকে ফেরত যাবে।`))return;
+ try{const b=writeBatch(db);
+  b.update(doc(db,"withdrawals",id),{status:paid?"paid":"rejected",settledAt:serverTimestamp(),settledBy:auth.currentUser.email});
+  b.update(doc(db,"users",w.uid),paid?{lockedDiamonds:increment(-w.diamonds)}:{lockedDiamonds:increment(-w.diamonds),diamonds:increment(w.diamonds)});
+  await b.commit();await log(paid?"withdraw-paid":"withdraw-rejected",w.playerId,{usd:w.usd,diamonds:w.diamonds});toast("আপডেট হয়েছে ✓");payroll();
+ }catch(e){toast("ব্যর্থ: "+e.message)}
+}
+
+// ---------- Coin sellers ----------
+async function sellers(){
+ view(`<div class="card"><div class="muted">কয়েন সেলার বানাতে <b>ইউজার ম্যানেজমেন্ট</b> থেকে ইউজার খুলে "কয়েন সেলার বানান" চাপুন। সেলারকে কয়েন দিতে নিচের তালিকা থেকে ম্যানেজ চাপুন।</div></div><div class="card"><div class="tw" id="ulist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ listUsers(query(collection(db,"users"),where("coinSeller","==",true),limit(200)));
+}
+
+// ---------- Packages ----------
+const DEF_PACKS=[[10000,500,"1.99"],[20000,1000,"3.99"],[50000,3000,"9.99"],[70000,4200,"13.99"],[100000,7000,"19.99"],[200000,16000,"40.99"],[300000,27000,"60.99"],[500000,50000,"101.99"],[1000000,120000,"205.99"],[1500000,210000,"312.99"]];
+async function packages(){
+ let packs=DEF_PACKS.map(([c,b,p])=>({coins:c,bonus:b,price:p}));
+ try{const s=await getDoc(doc(db,"config","shop"));if(s.exists()&&s.data().packs?.length)packs=s.data().packs}catch(e){}
+ const rowH=(p,i)=>`<tr><td>${i+1}</td><td><input class="inp" style="min-width:110px" data-f="coins" value="${p.coins}"></td><td><input class="inp" style="min-width:90px" data-f="bonus" value="${p.bonus}"></td><td><input class="inp" style="min-width:90px" data-f="price" value="${esc(p.price)}"></td><td class="muted">${fmt(Number(p.coins)+Number(p.bonus))}</td><td><button class="btn sm r" data-del="${i}">✕</button></td></tr>`;
+ const draw=()=>{$("#ptab").innerHTML=`<table><tr><th>#</th><th>কয়েন</th><th>বোনাস</th><th>দাম ($)</th><th>মোট</th><th></th></tr>${packs.map(rowH).join("")}</table>`;
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{read();packs.splice(+b.dataset.del,1);draw()})};
+ const read=()=>{const rs=[...document.querySelectorAll("#ptab tr")].slice(1);packs=rs.map(r=>({coins:+r.querySelector('[data-f=coins]').value,bonus:+r.querySelector('[data-f=bonus]').value,price:r.querySelector('[data-f=price]').value.trim()}))};
+ view(`<div class="card"><div class="ttl">COIN PACKAGES</div><div class="muted" style="margin-bottom:10px">শপের প্যাকেজ। পরিবর্তন করে "সেভ" চাপুন। (Google Play-তে দামও একই করতে হবে।)</div><div class="tw" id="ptab"></div><div class="row" style="margin-top:14px"><button class="btn" id="padd">+ প্যাকেজ যোগ</button><button class="btn o" id="psave">সেভ</button></div></div>`);
+ draw();$("#padd").onclick=()=>{read();packs.push({coins:0,bonus:0,price:"0.99"});draw()};
+ $("#psave").onclick=async()=>{read();try{await setDoc(doc(db,"config","shop"),{packs,updatedAt:serverTimestamp()});await log("packages-save","shop",{count:packs.length});toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
+}
+
+// ---------- Wallet settings ----------
+const DEF_APP={diamondsPerDollar:10000,minWithdrawDiamonds:100000,minExchangeDiamonds:10000,exchangeCoinsPer100:92,withdrawFeePercent:0,bdtPerLakhDiamonds:1350};
+async function wallet(){
+ let c={...DEF_APP};try{const s=await getDoc(doc(db,"config","app"));if(s.exists())c={...c,...s.data()}}catch(e){}
+ const f=(k,l)=>`<label class="f">${l}</label><input class="inp" style="width:100%" data-k="${k}" type="number" value="${c[k]}">`;
+ view(`<div class="card" style="max-width:560px"><div class="ttl">WALLET RATES</div>${f("diamondsPerDollar","কত ডায়মন্ডে $1")}${f("minWithdrawDiamonds","সর্বনিম্ন Withdraw (ডায়মন্ড)")}${f("minExchangeDiamonds","সর্বনিম্ন Exchange (ডায়মন্ড)")}${f("exchangeCoinsPer100","১০০ ডায়মন্ডে কত কয়েন")}${f("withdrawFeePercent","Withdraw ফি (%)")}${f("bdtPerLakhDiamonds","১ লাখ ডায়মন্ড = কত টাকা (হিসাবের জন্য)")}
+ <button class="btn o" id="wsave" style="margin-top:16px">সেভ</button><div class="muted" style="margin-top:10px;font-size:13px">অ্যাপের পরের আপডেটে এই রেটগুলো অ্যাপ নিজে পড়ে নেবে।</div></div>`);
+ $("#wsave").onclick=async()=>{const d={};document.querySelectorAll("[data-k]").forEach(i=>d[i.dataset.k]=Number(i.value));try{await setDoc(doc(db,"config","app"),{...d,updatedAt:serverTimestamp()},{merge:true});await log("wallet-rates","app",d);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
+}
+
+// ---------- Topup (by ID) ----------
+async function topup(){
+ view(`<div class="card" style="max-width:560px"><div class="ttl">COIN / DIAMOND</div><label class="f">প্লেয়ার আইডি বা Gmail</label><div class="row"><input class="inp" id="tq" style="flex:1"><button class="btn o" id="tgo">খুঁজুন</button></div><div class="muted" style="margin-top:10px">ইউজার পেলে "ম্যানেজ" চেপে কয়েন বা ডায়মন্ড দিন বা কাটুন।</div></div><div class="card"><div class="tw" id="ulist"><div class="empty">ইউজার খুঁজুন</div></div></div>`);
+ const go2=async()=>{$("#uq")||document.body.insertAdjacentHTML("beforeend",'<input id="uq" type="hidden">');$("#uq").value=$("#tq").value;await searchUsers()};
+ $("#tgo").onclick=go2;$("#tq").onkeydown=e=>{if(e.key==="Enter")go2()};
+}
+
+// ---------- Logs ----------
+async function logs(){
+ view(`<div class="card"><div class="tw" id="llist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ try{const s=await getDocs(query(collection(db,"adminLogs"),orderBy("at","desc"),limit(200)));
+  $("#llist").innerHTML=s.empty?`<div class="empty">এখনো কোনো অ্যাকশন নেই</div>`:`<table><tr><th>সময়</th><th>অ্যাকশন</th><th>টার্গেট</th><th>বিস্তারিত</th><th>কে</th></tr>${s.docs.map(d=>{const l=d.data();return `<tr><td>${dt(l.at)}</td><td><b>${esc(l.action)}</b></td><td>${esc(l.target)}</td><td class="muted" style="font-size:12px">${esc(JSON.stringify(l.details||{}))}</td><td class="muted">${esc(l.by)}</td></tr>`}).join("")}</table>`;
+ }catch(e){$("#llist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+
+// ---------- System message ----------
+async function message(){
+ let m="";try{const s=await getDoc(doc(db,"config","app"));m=s.data()?.announcement||""}catch(e){}
+ view(`<div class="card" style="max-width:640px"><div class="ttl">SYSTEM MESSAGE</div><div class="muted">সব ইউজার অ্যাপ খুললে এই বার্তা দেখবে (অ্যাপের পরের আপডেট থেকে)।</div><textarea class="inp" id="msg" rows="5" style="width:100%;margin-top:12px">${esc(m)}</textarea><div class="row" style="margin-top:12px"><button class="btn o" id="msave">সেভ</button><button class="btn" id="mclr">মুছুন</button></div></div>`);
+ const save=async v=>{try{await setDoc(doc(db,"config","app"),{announcement:v,updatedAt:serverTimestamp()},{merge:true});await log("announcement","app",{text:v});toast("সেভ হয়েছে ✓");message()}catch(e){toast("ব্যর্থ: "+e.message)}};
+ $("#msave").onclick=()=>save($("#msg").value.trim());$("#mclr").onclick=()=>save("");
+}
+function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
+const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message};
+
+// ---------- Auth ----------
+$("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};
+$("#out").onclick=()=>signOut(auth);
+onAuthStateChanged(auth,u=>{
+ const ok=u&&ADMINS.includes((u.email||"").toLowerCase());
+ if(u&&!ok){$("#lerr").textContent="এই Gmail অ্যাডমিন না: "+u.email;signOut(auth)}
+ $("#login").style.display=ok?"none":"grid";$("#app").style.display=ok?"block":"none";
+ if(ok){drawNav();go(current)}
+});
+</script>
+</body>
+</html>
