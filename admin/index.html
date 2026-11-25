@@ -39,7 +39,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .tw{overflow:auto}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .inp{padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;min-width:200px}
-.badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#eee}.badge.pending{background:#fff1d6;color:#a15c00}.badge.paid{background:#d9f5e7;color:#1d6b4c}.badge.rejected{background:#fde0e0;color:#b02a2a}.badge.ban{background:#fde0e0;color:#b02a2a}.badge.seller{background:#e3ecff;color:#2848a8}.badge.vip{background:linear-gradient(90deg,#ffc94d,#ff8a3d);color:#3a1a00}.badge.role{background:#efe6ff;color:#5a2bb0}
+.badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#eee}.badge.pending{background:#fff1d6;color:#a15c00}.badge.paid{background:#d9f5e7;color:#1d6b4c}.badge.rejected{background:#fde0e0;color:#b02a2a}.badge.ban{background:#fde0e0;color:#b02a2a}.badge.seller{background:#e3ecff;color:#2848a8}.badge.vip{background:linear-gradient(90deg,#ffc94d,#ff8a3d);color:#3a1a00}.badge.lv{background:linear-gradient(90deg,#5ccb9a,#1873d3);color:#fff}.badge.role{background:#efe6ff;color:#5a2bb0}
 .muted{color:var(--muted)}.av{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#eee;vertical-align:middle}
 .login{min-height:100vh;display:grid;place-items:center}.login .card{width:min(420px,92vw);text-align:center;padding:34px}
 .login img{width:84px;height:84px;border-radius:20px}.gbtn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:12px 22px;font-weight:600;margin-top:18px}
@@ -105,6 +105,8 @@ const shownId=u=>vipOn(u)?u.vipId:ownId(u);
 const idCell=u=>vipOn(u)?`<span class="badge vip">VIP</span> <b>${esc(u.vipId)}</b><div class="muted" style="font-size:11px">আসল ${esc(ownId(u))}</div>`:esc(ownId(u));
 const DUR=[["3m","৩ মাস",3],["6m","৬ মাস",6],["1y","১ বছর",12],["2y","২ বছর",24],["3y","৩ বছর",36]];
 const addMonths=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x};
+const syncProfile=(b,uid,fields)=>b.set(doc(db,"profiles",uid),fields,{merge:true});
+const lvl=u=>Math.max(1,Math.min(200,Number(u?.level||1)));
 const day=v=>{const d=v?.toDate?v.toDate():v;return d?d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"—"};
 async function log(action,target,details){try{await addDoc(collection(db,"adminLogs"),{action,target,details,by:auth.currentUser.email,at:serverTimestamp()})}catch(e){}}
 
@@ -134,6 +136,12 @@ const EN={
 "এখনো কোনো অ্যাকশন নেই":"No actions yet",
 "কয়েন / ডায়মন্ড দিন":"Give coins / diamonds",
 "পদ ও অনুমতি":"Roles & permissions",
+"লেভেল সেট করুন":"Set level",
+"নতুন লেভেল ১–২০০":"New level 1–200",
+"১ থেকে ২০০-এর মধ্যে লেভেল লিখুন":"Enter a level from 1 to 200",
+"লেভেল কয়েন":"level coins",
+"এখন":"now",
+"লেভেল":"Level",
 "VIP আইডি":"VIP IDs",
 "পদ (একাধিক বাছাই করা যায়)":"Roles (pick one or more)",
 "পদ সেভ করুন":"Save roles",
@@ -332,7 +340,7 @@ let cache={};
 function renderUsers(docs){
  if(!docs.length){$("#ulist").innerHTML=`<div class="empty">কোনো ইউজার পাওয়া যায়নি</div>`;return}
  docs.forEach(d=>{cache[d.id]=d.data()});
- $("#ulist").innerHTML=`<table><tr><th>ইউজার</th><th>আইডি</th><th>কয়েন</th><th>ডায়মন্ড</th><th>Locked</th><th>দেশ</th><th>যোগ দিয়েছে</th><th></th></tr>${docs.map(d=>{const u=d.data();return `<tr><td>${u.photoUrl?`<img class="av" src="${esc(u.photoUrl)}">`:""} <b>${esc(u.name)}</b> ${u.banned?'<span class="badge ban">BANNED</span>':""}${u.coinSeller?' <span class="badge seller">SELLER</span>':""}${(u.roles||[]).filter(r=>r!=="coinSeller").map(r=>` <span class="badge role">${esc((ROLES.find(x=>x[0]===r)||[r,r])[1])}</span>`).join("")}<div class="muted" style="font-size:12px">${esc(u.email)}</div></td><td>${idCell(u)}</td><td>${fmt(u.coins)}</td><td>${fmt(u.diamonds)}</td><td>${fmt(u.lockedDiamonds)}</td><td>${esc(u.country||"—")}</td><td>${dt(u.createdAt)}</td><td><button class="btn sm o" data-u="${d.id}">ম্যানেজ</button></td></tr>`}).join("")}</table>`;
+ $("#ulist").innerHTML=`<table><tr><th>ইউজার</th><th>আইডি</th><th>লেভেল</th><th>কয়েন</th><th>ডায়মন্ড</th><th>Locked</th><th>দেশ</th><th>যোগ দিয়েছে</th><th></th></tr>${docs.map(d=>{const u=d.data();return `<tr><td>${u.photoUrl?`<img class="av" src="${esc(u.photoUrl)}">`:""} <b>${esc(u.name)}</b> ${u.banned?'<span class="badge ban">BANNED</span>':""}${u.coinSeller?' <span class="badge seller">SELLER</span>':""}${(u.roles||[]).filter(r=>r!=="coinSeller").map(r=>` <span class="badge role">${esc((ROLES.find(x=>x[0]===r)||[r,r])[1])}</span>`).join("")}<div class="muted" style="font-size:12px">${esc(u.email)}</div></td><td>${idCell(u)}</td><td><span class="badge lv">Lv ${lvl(u)}</span></td><td>${fmt(u.coins)}</td><td>${fmt(u.diamonds)}</td><td>${fmt(u.lockedDiamonds)}</td><td>${esc(u.country||"—")}</td><td>${dt(u.createdAt)}</td><td><button class="btn sm o" data-u="${d.id}">ম্যানেজ</button></td></tr>`}).join("")}</table>`;
  document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>manageUser(b.dataset.u));
 }
 async function manageUser(uid){
@@ -345,7 +353,10 @@ async function manageUser(uid){
  <div class="row" style="margin-top:14px"><button class="btn g" data-a="coin+">+ কয়েন দিন</button><button class="btn r" data-a="coin-">− কয়েন কাটুন</button><button class="btn g" data-a="dia+">+ ডায়মন্ড দিন</button><button class="btn r" data-a="dia-">− ডায়মন্ড কাটুন</button></div>
  <div class="row" style="margin-top:14px"><button class="btn" data-a="ban">${u.banned?"আনব্যান করুন":"ব্যান করুন"}</button><button class="btn" data-a="seller">${u.coinSeller?"সেলার বাতিল":"কয়েন সেলার বানান"}</button><button class="btn" id="mclose">বন্ধ</button></div>
  <label class="f" style="margin-top:16px">পদ (একাধিক বাছাই করা যায়)</label><div class="row">${ROLES.map(([k,l])=>`<label class="chip" style="cursor:pointer"><input type="checkbox" data-role="${k}" ${(u.roles||[]).includes(k)||(k==="coinSeller"&&u.coinSeller)?"checked":""}> ${l}</label>`).join("")}</div>
- <div class="row" style="margin-top:10px"><button class="btn o" id="rsave">পদ সেভ করুন</button></div>`);
+ <div class="row" style="margin-top:10px"><button class="btn o" id="rsave">পদ সেভ করুন</button></div>
+ <label class="f" style="margin-top:16px">লেভেল (এখন Lv ${lvl(u)} · লেভেল কয়েন ${fmt(u.levelCoins)})</label>
+ <div class="row"><input class="inp" id="lvn" type="number" min="1" max="200" placeholder="নতুন লেভেল ১–২০০" style="flex:1"><button class="btn g" id="lvsave">লেভেল সেট করুন</button></div>`);
+ $("#lvsave").onclick=()=>setLevel(uid);
  $("#rsave").onclick=()=>saveRoles(uid);
  $("#mclose").onclick=closeM;
  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(uid,b.dataset.a));
@@ -354,7 +365,7 @@ async function userAction(uid,a){
  const u=cache[uid],n=Math.floor(Number($("#amt")?.value||0)),why=$("#why")?.value||"";
  const ref=doc(db,"users",uid);
  try{
-  if(a==="ban"||a==="seller"){const f=a==="ban"?"banned":"coinSeller";const upd={[f]:!u[f]};if(a==="seller"){const r=new Set(u.roles||[]);u[f]?r.delete("coinSeller"):r.add("coinSeller");upd.roles=[...r]}await updateDoc(ref,upd);await log(a,shownId(u),{to:!u[f],why});toast("সেভ হয়েছে");closeM();refresh();return}
+  if(a==="ban"||a==="seller"){const f=a==="ban"?"banned":"coinSeller";const upd={[f]:!u[f]};if(a==="seller"){const r=new Set(u.roles||[]);u[f]?r.delete("coinSeller"):r.add("coinSeller");upd.roles=[...r]}const bb=writeBatch(db);bb.update(ref,upd);if(upd.roles)syncProfile(bb,uid,{roles:upd.roles});await bb.commit();await log(a,shownId(u),{to:!u[f],why});toast("সেভ হয়েছে");closeM();refresh();return}
   if(!(n>0)){toast("সঠিক পরিমাণ লিখুন");return}
   if(a==="coin-"&&n>(u.coins||0)){toast("এত কয়েন নেই");return}
   if(a==="dia-"&&n>(u.diamonds||0)){toast("এত ডায়মন্ড নেই");return}
@@ -442,10 +453,16 @@ async function message(){
  const save=async v=>{try{await setDoc(doc(db,"config","app"),{announcement:v,updatedAt:serverTimestamp()},{merge:true});await log("announcement","app",{text:v});toast("সেভ হয়েছে ✓");message()}catch(e){toast("ব্যর্থ: "+e.message)}};
  $("#msave").onclick=()=>save($("#msg").value.trim());$("#mclr").onclick=()=>save("");
 }
+async function setLevel(uid){
+ const u=cache[uid];const n=Math.floor(Number($("#lvn").value||0));
+ if(!(n>=1&&n<=200)){toast("১ থেকে ২০০-এর মধ্যে লেভেল লিখুন");return}
+ if(!confirm(`${u.name}-এর লেভেল Lv ${lvl(u)} থেকে Lv ${n} করবেন?`))return;
+ try{const b=writeBatch(db);b.update(doc(db,"users",uid),{level:n,updatedAt:serverTimestamp()});syncProfile(b,uid,{level:n});await b.commit();
+  await log("level-set",shownId(u),{from:lvl(u),to:n,name:u.name,why:$("#why")?.value||""});toast("হয়ে গেছে ✓");closeM();refresh()}catch(e){toast("ব্যর্থ: "+e.message)}}
 async function saveRoles(uid){
  const u=cache[uid];const roles=[...document.querySelectorAll("[data-role]")].filter(i=>i.checked).map(i=>i.dataset.role);
  if(!confirm(`${u.name}-এর পদ সেভ করবেন?`))return;
- try{await updateDoc(doc(db,"users",uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});
+ try{const b=writeBatch(db);b.update(doc(db,"users",uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});syncProfile(b,uid,{roles});await b.commit();
   await log("roles",shownId(u),{from:u.roles||[],to:roles,name:u.name});toast("সেভ হয়েছে ✓");closeM();refresh()}catch(e){toast("ব্যর্থ: "+e.message)}}
 
 // ---------- Roles ----------
@@ -496,7 +513,8 @@ function vipGive(v){
    if(!confirm(`${u.name} (আসল ${ownId(u)}) কে ${v} দেবেন? মেয়াদ: ${day(until)}`))return;
    const b=writeBatch(db);
    if(vipOn(u)&&u.vipId!==v)b.set(doc(db,"ids",u.vipId),{type:"vip",uid:null,until:null},{merge:true});
-   if(cx.uid&&cx.uid!==d.id)b.update(doc(db,"users",cx.uid),{vipId:"",vipUntil:null});
+   if(cx.uid&&cx.uid!==d.id){b.update(doc(db,"users",cx.uid),{vipId:"",vipUntil:null});syncProfile(b,cx.uid,{vipId:"",vipUntil:null})}
+   syncProfile(b,d.id,{vipId:v,vipUntil:Timestamp.fromDate(until)});
    b.set(doc(db,"ids",v),{type:"vip",uid:d.id,until:Timestamp.fromDate(until),at:serverTimestamp()},{merge:true});
    b.update(doc(db,"users",d.id),{vipId:v,vipUntil:Timestamp.fromDate(until),updatedAt:serverTimestamp()});
    await b.commit();await log("vip-give",v,{to:ownId(u),name:u.name,months:m});toast("হয়ে গেছে ✓");closeM();vip();
@@ -507,12 +525,12 @@ function vipExtend(o){
  <div class="row" style="margin-top:16px"><button class="btn g" id="vok">বাড়ান</button><button class="btn" id="mclose">বন্ধ</button></div>`);
  $("#mclose").onclick=closeM;const getM=bindDur();
  $("#vok").onclick=async()=>{const m=getM();const base=Math.max(Date.now(),o.u.vipUntil.toMillis());const until=addMonths(new Date(base),m);
-  try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipUntil:Timestamp.fromDate(until)});b.set(doc(db,"ids",o.v),{until:Timestamp.fromDate(until)},{merge:true});await b.commit();
+  try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipUntil:Timestamp.fromDate(until)});syncProfile(b,o.x.uid,{vipUntil:Timestamp.fromDate(until)});b.set(doc(db,"ids",o.v),{until:Timestamp.fromDate(until)},{merge:true});await b.commit();
    await log("vip-extend",o.v,{name:o.u.name,months:m});toast("হয়ে গেছে ✓");closeM();vip()}catch(e){toast("ব্যর্থ: "+e.message)}};
 }
 async function vipRevoke(o){
  if(!confirm(`${o.v} ${o.u.name}-এর কাছ থেকে ফিরিয়ে নেবেন? তার আসল আইডি ${ownId(o.u)} আবার দেখাবে।`))return;
- try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipId:"",vipUntil:null});b.set(doc(db,"ids",o.v),{uid:null,until:null},{merge:true});await b.commit();
+ try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipId:"",vipUntil:null});syncProfile(b,o.x.uid,{vipId:"",vipUntil:null});b.set(doc(db,"ids",o.v),{uid:null,until:null},{merge:true});await b.commit();
   await log("vip-revoke",o.v,{name:o.u.name});toast("হয়ে গেছে ✓");vip()}catch(e){toast("ব্যর্থ: "+e.message)}
 }
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
