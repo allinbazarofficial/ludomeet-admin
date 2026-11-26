@@ -95,6 +95,7 @@ function firestoreStore(keyFile) {
         const uref = db.collection('users').doc(uid);
         const u = await tx.get(uref);
         const coins = (u.data() || {}).coins || 0;
+        if ((u.data() || {}).banned) { const e = new Error('BANNED'); e.code = 'BANNED'; throw e; }
         if (coins < amount) { const e = new Error('NO_COINS'); e.code = 'NO_COINS'; throw e; }
         tx.update(uref, { coins: FV.increment(-amount), updatedAt: FV.serverTimestamp() });
         tx.set(lockRef, { uid, amount, matchId, status: 'locked', at: FV.serverTimestamp() });
