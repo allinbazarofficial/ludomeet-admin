@@ -52,6 +52,9 @@ WorkingDirectory=/opt/ludomeet-game
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=3
+# Updates wait (up to 40 minutes) for running games to finish before restarting.
+KillSignal=SIGTERM
+TimeoutStopSec=2400
 Environment=NODE_ENV=production
 [Install]
 WantedBy=multi-user.target
@@ -60,6 +63,6 @@ systemctl daemon-reload
 # Always running: without the key file it waits in setup mode for
 # playludomeet.com/setup-key.html, then restarts with games on.
 [ -f /opt/ludomeet-game/service-account.json ] && chmod 600 /opt/ludomeet-game/service-account.json
-systemctl enable ludomeet-game >/dev/null 2>&1; systemctl restart ludomeet-game
+systemctl enable ludomeet-game >/dev/null 2>&1; systemctl restart --no-block ludomeet-game
 sleep 2; echo "GAME_HEALTH $(curl -s http://127.0.0.1:8090/health)"
 echo SETUP_DONE

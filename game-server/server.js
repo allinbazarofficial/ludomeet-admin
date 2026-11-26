@@ -286,7 +286,26 @@ async function finish(r) {
   log('match', record.mode, record.stake, 'income', record.income);
 }
 
+// Updating: no new games; the old server keeps running the games already
+// being played and stops by itself once the last one is over.
+let draining = false;
+function drain() {
+  if (draining) return;
+  draining = true;
+  log('update: waiting for running games to finish');
+  for (const r of [...rooms.values()]) if (r.status === 'waiting') closeRoom(r, 'update').catch(() => {});
+  for (const q of queues.values()) for (const e of q.splice(0)) { clearTimeout(e.timer); send(e.uid, { t: 'noMatch', stake: 0 }); }
+  const check = () => {
+    const busyRooms = [...rooms.values()].filter(r => r.status !== 'closed' && r.status !== 'waiting').length;
+    if (busyRooms === 0) { log('update: no games left, restarting'); setTimeout(() => process.exit(0), 300); return true; }
+    return false;
+  };
+  if (!check()) setInterval(check, 2000);
+}
+process.on('SIGTERM', drain);
+
 async function checkStake(stake) {
+  if (draining) throw err('UPDATING');
   const cfg = await store.config();
   if (!cfg.enabled) throw err('GAMES_OFF');
   if (!cfg.stakes.includes(stake)) throw err('BAD_STAKE');
