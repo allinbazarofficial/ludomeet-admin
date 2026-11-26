@@ -10,7 +10,7 @@ const crypto = require('crypto');
 
 const DEFAULTS = {
   enabled: true,
-  feePct: 5,
+  feePct: 10,
   stakes: [500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
   split4: [70, 30],
   botMult: { easy: 1.4, normal: 1.6, hard: 2.0 },
@@ -36,11 +36,14 @@ function memoryStore() {
     setConfig(c) { config = { ...DEFAULTS, ...c }; },
     async verify(token) { if (!token) throw new Error('bad token'); return token; },
     async profile(uid) { const u = user(uid); return { name: u.name, photo: null, userId: u.userId }; },
+    async coins(uid) { return user(uid).coins; },
+    logs: [],
     async config() { return config; },
     async lock(uid, amount, matchId) {
       const u = user(uid);
       if (u.coins < amount) { const e = new Error('NO_COINS'); e.code = 'NO_COINS'; throw e; }
       u.coins -= amount;
+      this.logs.push({ uid, type: 'game_stake', amount: -amount });
       const lockId = id();
       locks.set(lockId, { uid, amount, matchId, status: 'locked' });
       return lockId;
@@ -49,6 +52,7 @@ function memoryStore() {
       const l = locks.get(lockId);
       if (!l || l.status !== 'locked') return;
       user(l.uid).coins += l.amount; l.status = 'refunded';
+      this.logs.push({ uid: l.uid, type: 'game_refund', amount: l.amount });
     },
     async settle(lockIds, credits, record) {
       for (const lid of lockIds) { const l = locks.get(lid); if (l && l.status === 'locked') l.status = 'settled'; }
@@ -89,7 +93,11 @@ function firestoreStore(keyFile) {
       return cache;
     },
 
-    async lock(uid, amount, matchId) {
+    async coins(uid) {
+      return ((await db.collection('users').doc(uid).get()).data() || {}).coins || 0;
+    },
+
+    async lock(uid, amount, matchId, note = 'Online Ludo stake') {
       const lockRef = db.collection('gameLocks').doc();
       await db.runTransaction(async tx => {
         const uref = db.collection('users').doc(uid);
@@ -99,6 +107,7 @@ function firestoreStore(keyFile) {
         if (coins < amount) { const e = new Error('NO_COINS'); e.code = 'NO_COINS'; throw e; }
         tx.update(uref, { coins: FV.increment(-amount), updatedAt: FV.serverTimestamp() });
         tx.set(lockRef, { uid, amount, matchId, status: 'locked', at: FV.serverTimestamp() });
+        tx.set(uref.collection('coinLog').doc(), { type: 'game_stake', amount: -amount, balance: coins - amount, note, ref: matchId, at: FV.serverTimestamp() });
       });
       return lockRef.id;
     },
@@ -108,9 +117,13 @@ function firestoreStore(keyFile) {
         const ref = db.collection('gameLocks').doc(lockId);
         const l = await tx.get(ref);
         if (!l.exists || l.data().status !== 'locked') return;
-        const { uid, amount } = l.data();
-        tx.update(db.collection('users').doc(uid), { coins: FV.increment(amount), updatedAt: FV.serverTimestamp() });
+        const { uid, amount, matchId } = l.data();
+        const uref = db.collection('users').doc(uid);
+        const u = await tx.get(uref);
+        const coins = (u.data() || {}).coins || 0;
+        tx.update(uref, { coins: FV.increment(amount), updatedAt: FV.serverTimestamp() });
         tx.update(ref, { status: 'refunded', doneAt: FV.serverTimestamp() });
+        tx.set(uref.collection('coinLog').doc(), { type: 'game_refund', amount, balance: coins + amount, note: 'Online Ludo stake returned', ref: matchId, at: FV.serverTimestamp() });
       });
     },
 
@@ -119,10 +132,16 @@ function firestoreStore(keyFile) {
         const refs = lockIds.map(l => db.collection('gameLocks').doc(l));
         const snaps = await Promise.all(refs.map(r => tx.get(r)));
         if (snaps.some(s => !s.exists || s.data().status !== 'locked')) throw new Error('lock already closed');
+        const paid = credits.filter(c => c.amount > 0);
+        const users = await Promise.all(paid.map(c => tx.get(db.collection('users').doc(c.uid))));
         refs.forEach(r => tx.update(r, { status: 'settled', doneAt: FV.serverTimestamp() }));
-        for (const c of credits) {
-          if (c.amount > 0) tx.update(db.collection('users').doc(c.uid), { coins: FV.increment(c.amount), updatedAt: FV.serverTimestamp() });
-        }
+        paid.forEach((c, i) => {
+          const uref = db.collection('users').doc(c.uid);
+          const before = (users[i].data() || {}).coins || 0;
+          tx.update(uref, { coins: FV.increment(c.amount), updatedAt: FV.serverTimestamp() });
+          tx.set(uref.collection('coinLog').doc(), { type: 'game_win', amount: c.amount, balance: before + c.amount,
+            note: record.mode.startsWith('bot') ? 'Won vs computer (' + record.mode.slice(4) + ')' : 'Won online Ludo (' + record.mode + ')', ref: record.id, at: FV.serverTimestamp() });
+        });
         tx.set(db.collection('matches').doc(record.id), { ...record, at: FV.serverTimestamp() });
         const day = bdDay();
         const st = String(record.stake);

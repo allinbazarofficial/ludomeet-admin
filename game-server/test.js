@@ -40,8 +40,8 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   const room = await a.wait('room');
   b.send({ t: 'join', code: room.code });
   let over = await a.wait('over', 60000);
-  assert.equal(over.credits[0].amount, 1900, '2p prize is pot minus 5%');
-  let houseIncome = 100;
+  assert.equal(over.credits[0].amount, 1800, '2p prize is pot minus 10%');
+  let houseIncome = 200;
   assert.equal(total(), start - houseIncome);
   console.log('2-player ok, winner', over.ranking[0]);
 
@@ -50,8 +50,8 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   const r4 = await a.wait('room');
   for (const x of [b, c, d]) x.send({ t: 'join', code: r4.code });
   over = await a.wait('over', 120000);
-  assert.deepEqual(over.credits.map(x => x.amount), [13300, 5700]);
-  houseIncome += 1000;
+  assert.deepEqual(over.credits.map(x => x.amount), [12600, 5400]);
+  houseIncome += 2000;
   assert.equal(total(), start - houseIncome);
   console.log('4-player ok', over.ranking.slice(0, 2));
 
@@ -60,15 +60,15 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   const rt = await a.wait('room');
   for (const x of [b, c, d]) x.send({ t: 'join', code: rt.code });
   over = await a.wait('over', 120000);
-  assert.equal(over.credits.length, 2); assert.equal(over.credits[0].amount, 950);
-  houseIncome += 100;
+  assert.equal(over.credits.length, 2); assert.equal(over.credits[0].amount, 900);
+  houseIncome += 200;
   assert.equal(total(), start - houseIncome);
   console.log('teams ok');
 
   // 4) random match pairs two people
   a.send({ t: 'random', stake: 500 }); b.send({ t: 'random', stake: 500 });
   over = await a.wait('over', 60000);
-  houseIncome += 50;
+  houseIncome += 100;
   assert.equal(total(), start - houseIncome);
   console.log('random ok');
 
@@ -99,10 +99,23 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   a.send({ t: 'create', stake: 777, size: 2 }); e = await a.wait('error'); assert.equal(e.code, 'BAD_STAKE');
   store.users.get('a').coins = 5000;
   a.send({ t: 'create', stake: 1000, size: 3 }); await a.wait('room');
-  assert.equal(store.users.get('a').coins, 4000);
+  assert.equal(store.users.get('a').coins, 5000, 'no coins taken while waiting');
   a.send({ t: 'leave' }); await a.wait('left');
   assert.equal(store.users.get('a').coins, 5000);
-  console.log('errors and refunds ok');
+  console.log('errors and free leave ok');
+
+  // 9) leaving a running game = lose at once; the other wins
+  const s0 = total();
+  a.send({ t: 'create', stake: 1000, size: 2 });
+  const rl = await a.wait('room');
+  b.send({ t: 'join', code: rl.code });
+  await a.wait('start');
+  a.send({ t: 'leave' });
+  over = await b.wait('over', 10000);
+  assert.equal(over.ranking[0], 'b'); assert.equal(over.credits[0].amount, 1800);
+  assert.equal(total(), s0 - 200);
+  houseIncome += 200;
+  console.log('leave = lose ok');
 
   // 8) no lock left open
   assert.equal([...store.locks.values()].filter(l => l.status === 'locked').length, 0);

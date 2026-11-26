@@ -16,7 +16,8 @@ class Ludo {
   // seats: [{ id, team? }] in turn order; colors are given out by seat count.
   constructor(seats, { needed = 1, rng = Math.random } = {}) {
     const colors = seats.length === 2 ? ['red', 'yellow'] : COLORS.slice(0, seats.length);
-    this.players = seats.map((s, i) => ({ id: s.id, color: colors[i], team: s.team ?? null, tokens: [-1, -1, -1, -1] }));
+    this.players = seats.map((s, i) => ({ id: s.id, color: colors[i], team: s.team ?? null, tokens: [-1, -1, -1, -1], out: false }));
+    this.outOrder = [];
     this.current = 0;
     this.dice = null;
     this.sixesInRow = 0;
@@ -32,6 +33,18 @@ class Ludo {
   sameSide(a, b) { return a === b || (a.team !== null && a.team === b.team); }
   canMove(t, d) { if (t === FINISHED) return false; if (t === IN_BASE) return d === 6; return t + d <= FINISHED; }
   movable() { const d = this.dice; if (d == null) return []; return this.turn.tokens.map((t, i) => this.canMove(t, d) ? i : -1).filter(i => i >= 0); }
+
+  // A player who left: their pieces go off the board and they are skipped.
+  eliminate(id) {
+    const p = this.players.find(x => x.id === id);
+    if (!p || p.out || this.over) return false;
+    p.out = true; p.tokens = [IN_BASE, IN_BASE, IN_BASE, IN_BASE];
+    this.outOrder.push(id);
+    const wasTurn = this.turn === p;
+    this.checkOver();
+    if (wasTurn) this.advance();
+    return true;
+  }
 
   roll() {
     if (this.over || this.dice != null) throw new Error('cannot roll');
@@ -71,10 +84,11 @@ class Ludo {
       for (const team of [0, 1]) {
         const m = this.players.filter(p => p.team === team);
         if (m.length && m.every(p => this.finished(p))) { this.over = true; this.winningTeam = team; return; }
+        if (m.length && m.every(p => p.out)) { this.over = true; this.winningTeam = 1 - team; return; }
       }
       return;
     }
-    const left = this.players.filter(p => !this.finished(p)).length;
+    const left = this.players.filter(p => !this.finished(p) && !p.out).length;
     if (this.finishOrder.length >= this.needed || left <= 1) this.over = true;
   }
 
@@ -83,15 +97,15 @@ class Ludo {
     if (this.over) return;
     for (let k = 1; k <= this.players.length; k++) {
       const n = (this.current + k) % this.players.length;
-      if (!this.finished(this.players[n])) { this.current = n; return; }
+      if (!this.finished(this.players[n]) && !this.players[n].out) { this.current = n; return; }
     }
   }
 
   // Order of places at the end: finishers first, then by progress.
   ranking() {
     const score = p => p.tokens.reduce((s, t) => s + (t === IN_BASE ? 0 : t + 1), 0);
-    const rest = this.players.filter(p => !this.finishOrder.includes(p.id)).sort((a, b) => score(b) - score(a)).map(p => p.id);
-    return [...this.finishOrder, ...rest];
+    const rest = this.players.filter(p => !this.finishOrder.includes(p.id) && !p.out).sort((a, b) => score(b) - score(a)).map(p => p.id);
+    return [...this.finishOrder, ...rest, ...[...this.outOrder].reverse()];
   }
 
   // Computer choice. level: easy = any legal move, normal = good move most of
@@ -133,7 +147,7 @@ class Ludo {
 
   state() {
     return {
-      players: this.players.map(p => ({ id: p.id, color: p.color, team: p.team, tokens: p.tokens })),
+      players: this.players.map(p => ({ id: p.id, color: p.color, team: p.team, tokens: p.tokens, out: p.out })),
       turn: this.turn.id, dice: this.dice, finishOrder: this.finishOrder, over: this.over,
     };
   }
