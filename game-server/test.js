@@ -144,7 +144,18 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   a.send({ t: 'leave' }); await a.wait('left');
   console.log('blocks ok');
 
-  // 8) no lock left open
+  // 8) left the game screen: the app can see the running game and go back into it
+  a.send({ t: 'active' }); let act = await a.wait('active'); assert.equal(act.none, true);
+  a.send({ t: 'rejoin' }); e = await a.wait('error'); assert.equal(e.code, 'NO_GAME');
+  a.send({ t: 'bot', stake: 500, level: 'easy' }); await a.wait('start');
+  a.send({ t: 'active' }); act = await a.wait('active'); assert.equal(act.status, 'playing'); assert.equal(act.stake, 500);
+  a.send({ t: 'rejoin' }); const rs = await a.wait('resume'); assert.ok(rs.state && rs.seats.length === 2);
+  a.send({ t: 'bot', stake: 500, level: 'easy' }); e = await a.wait('error'); assert.equal(e.code, 'IN_GAME');
+  a.send({ t: 'leave' }); await a.wait('over', 60000);
+  a.send({ t: 'active' }); act = await a.wait('active'); assert.equal(act.none, true);
+  console.log('return to game ok');
+
+  // 9) no lock left open
   assert.equal([...store.locks.values()].filter(l => l.status === 'locked').length, 0);
   console.log('ALL TESTS PASSED; daily stats', JSON.stringify(store.stats));
   conns.forEach(x => x.ws.close()); srv.stop(); process.exit(0);

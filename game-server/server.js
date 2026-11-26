@@ -404,6 +404,29 @@ const handlers = {
     send(uid, { t: 'invited', sent });
   },
 
+  // Is this player still in a room or a running game? (Lets the app show "Return to game".)
+  async active(uid) {
+    const r = rooms.get(userRoom.get(uid));
+    const s = r && seatOf(r, uid);
+    if (!r || !s || s.out || (r.status !== 'playing' && r.status !== 'waiting')) return send(uid, { t: 'active', none: true });
+    send(uid, { ...roomInfo(r), t: 'active', status: r.status });
+  },
+
+  // Go back into my running game (or my waiting room) after leaving its screen.
+  async rejoin(uid) {
+    const r = rooms.get(userRoom.get(uid));
+    const s = r && seatOf(r, uid);
+    if (!r || !s || s.out) throw err('NO_GAME');
+    s.goneAt = null; clearTimeout(s.grace); clearTimeout(s.awayTimer);
+    if (r.status === 'playing') {
+      send(uid, { ...roomInfo(r), t: 'resume', state: r.game ? r.game.state() : null });
+      broadcast(r, { t: 'back', uid });
+      sendVoice(r, uid);
+    } else if (r.status === 'waiting') {
+      send(uid, roomInfo(r));
+    } else throw err('NO_GAME');
+  },
+
   async leave(uid) {
     if (leaveQueue(uid)) { send(uid, { t: 'left' }); return; }
     const r = rooms.get(userRoom.get(uid));
