@@ -427,10 +427,10 @@ function renderUsers(docs){
 }
 async function manageUser(uid){
  const s=await getDoc(doc(db,"users",uid));const u=s.data();cache[uid]=u;
- modal(`<div class="row" style="justify-content:flex-end"><button class="btn o sm" id="fullp">👤 পুরো প্রোফাইল</button></div><h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))}${vipOn(u)?` (VIP · আসল ${esc(ownId(u))})`:""}</span></h3>
+ modal(`<div class="row" style="justify-content:flex-end"><button class="btn o sm" id="clog">🪙 কয়েন হিস্টোরি</button> <button class="btn o sm" id="fullp">👤 পুরো প্রোফাইল</button></div><h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))}${vipOn(u)?` (VIP · আসল ${esc(ownId(u))})`:""}</span></h3>
  <div class="muted">${esc(u.email)}</div>
  <div class="grid" style="margin:14px 0;grid-template-columns:repeat(3,1fr)"><div class="stat"><span>কয়েন</span><b>${fmt(u.coins)}</b></div><div class="stat"><span>ডায়মন্ড</span><b>${fmt(u.diamonds)}</b></div><div class="stat"><span>Locked</span><b>${fmt(u.lockedDiamonds)}</b></div></div>
- <label class="f">পরিমাণ</label><input class="inp" id="amt" type="number" min="1" placeholder="যেমন 10000" style="width:100%">
+ <label class="f">পরিমাণ</label><input class="inp" id="amt" inputmode="numeric" data-num placeholder="যেমন 10,000" style="width:100%">
  <label class="f">কারণ (লগে থাকবে)</label><input class="inp" id="why" placeholder="যেমন: বোনাস, ভুল সংশোধন" style="width:100%">
  <div class="row" style="margin-top:14px"><button class="btn g" data-a="coin+">+ কয়েন দিন</button><button class="btn r" data-a="coin-">− কয়েন কাটুন</button><button class="btn g" data-a="dia+">+ ডায়মন্ড দিন</button><button class="btn r" data-a="dia-">− ডায়মন্ড কাটুন</button></div>
  <div class="row" style="margin-top:14px"><button class="btn" data-a="ban">${u.banned?"আনব্যান করুন":"ব্যান করুন"}</button><button class="btn" data-a="seller">${u.coinSeller?"সেলার বাতিল":"কয়েন সেলার বানান"}</button><button class="btn" id="mclose">বন্ধ</button></div>
@@ -441,11 +441,12 @@ async function manageUser(uid){
  $("#lvsave").onclick=()=>setLevel(uid);
  $("#rsave").onclick=()=>saveRoles(uid);
  $("#fullp").onclick=()=>{closeM();userProfile(uid)};
+ $("#clog").onclick=()=>{closeM();coinLog(uid)};
  $("#mclose").onclick=closeM;
  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(uid,b.dataset.a));
 }
 async function userAction(uid,a){
- const u=cache[uid],n=Math.floor(Number($("#amt")?.value||0)),why=$("#why")?.value||"";
+ const u=cache[uid],n=Math.floor(Number(($("#amt")?.value||"0").replace(/[^0-9]/g,""))),why=$("#why")?.value||"";
  const ref=doc(db,"users",uid);
  try{
   if(a==="ban"||a==="seller"){const f=a==="ban"?"banned":"coinSeller";const upd={[f]:!u[f]};if(a==="seller"){const r=new Set(u.roles||[]);u[f]?r.delete("coinSeller"):r.add("coinSeller");upd.roles=[...r]}const bb=writeBatch(db);bb.update(ref,upd);if(upd.roles)syncProfile(bb,uid,{roles:upd.roles});await bb.commit();await log(a,shownId(u),{to:!u[f],why});toast("সেভ হয়েছে");closeM();refresh();return}
@@ -454,10 +455,22 @@ async function userAction(uid,a){
   if(a==="dia-"&&n>(u.diamonds||0)){toast("এত ডায়মন্ড নেই");return}
   if(!await dlg(`নিশ্চিত? ${a} ${fmt(n)} → ${u.name}`))return;
   const upd={"coin-":{coins:increment(-n)},"dia+":{diamonds:increment(n),lifetimeDiamonds:increment(n)},"dia-":{diamonds:increment(-n)}};
-  await updateDoc(ref,{...(a==="coin+"?{coins:increment(n)}:upd[a]),updatedAt:serverTimestamp()});
+  const wb=writeBatch(db);wb.update(ref,{...(a==="coin+"?{coins:increment(n)}:upd[a]),updatedAt:serverTimestamp()});
+  if(a==="coin+"||a==="coin-"){const amt=a==="coin+"?n:-n;wb.set(doc(collection(db,"users",uid,"coinLog")),{type:"admin",amount:amt,balance:(u.coins||0)+amt,note:why||(amt>0?"Gift from LudoMeet":"Removed by LudoMeet"),by:auth.currentUser.email,at:serverTimestamp()})}
+  await wb.commit();
   await log(a,shownId(u),{amount:n,why,name:u.name});toast("হয়ে গেছে ✓");closeM();refresh();
  }catch(e){toast("ব্যর্থ: "+e.message)}
 }
+const CLK={admin:["🎁","অ্যাডমিন"],game_stake:["🎲","অনলাইন লুডু টেবিল"],game_win:["🏆","অনলাইন লুডু জয়"],game_refund:["↩️","টেবিল ফেরত"],exchange:["💱","ডায়মন্ড এক্সচেঞ্জ"],name_fee:["🪪","নাম পরিবর্তন ফি"],shop:["🛍️","শপ"],deposit:["💳","ডিপোজিট"],offline:["🎮","অফলাইন গেম/মিশন"]};
+async function coinLog(uid){
+ const u=cache[uid]||(await getDoc(doc(db,"users",uid))).data()||{};
+ modal(`<h3 style="margin-top:0">🪙 কয়েন হিস্টোরি — ${esc(u.name||"")} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))} · এখন ${fmt(u.coins)}</span></h3><div class="tw" id="clist"><div class="empty">লোড হচ্ছে…</div></div><div class="row" style="margin-top:12px"><button class="btn" id="cback">ফিরে যান</button></div>`);
+ $("#cback").onclick=()=>{closeM();manageUser(uid)};
+ try{const s=await getDocs(query(collection(db,"users",uid,"coinLog"),orderBy("at","desc"),limit(300)));
+  $("#clist").innerHTML=s.empty?`<div class="empty">কোনো হিস্টোরি নেই</div>`:`<table><tr><th>সময়</th><th>ধরন</th><th>নোট</th><th>পরিমাণ</th><th>ব্যালেন্স</th></tr>${s.docs.map(d=>{const e=d.data(),k=CLK[e.type]||["•",e.type||"—"];return `<tr><td>${dt(e.at)}</td><td>${k[0]} ${esc(k[1])}${e.by?`<div class="muted" style="font-size:11px">${esc(e.by)}</div>`:""}</td><td>${esc(e.note||"")}${e.ref?`<div class="muted" style="font-size:11px">${esc(e.ref)}</div>`:""}</td><td style="color:${(e.amount||0)>=0?"#3ad07a":"#ff5f8a"};font-weight:800">${(e.amount||0)>0?"+":""}${fmt(e.amount)}</td><td>${e.balance==null?"—":fmt(e.balance)}</td></tr>`}).join("")}</table>`;
+ }catch(e){$("#clist").innerHTML=`<div class="empty">লোড হয়নি: ${esc(e.message)}</div>`}
+}
+document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("[data-num]"))return;const d=t.value.replace(/[^0-9]/g,"");t.value=d?Number(d).toLocaleString("en-US"):""});
 function refresh(){(PAGES[current]||soon)()}
 async function banned(){view(`<div class="card"><div class="tw" id="ulist"><div class="empty">লোড হচ্ছে…</div></div></div>`);listUsers(query(collection(db,"users"),where("banned","==",true),limit(200)))}
 
@@ -508,10 +521,10 @@ async function packages(){
 const DEF_APP={diamondsPerDollar:10000,minWithdrawDiamonds:100000,minExchangeDiamonds:10000,exchangeCoinsPer100:92,withdrawFeePercent:0,bdtPerLakhDiamonds:1350};
 async function wallet(){
  let c={...DEF_APP};try{const s=await getDoc(doc(db,"config","app"));if(s.exists())c={...c,...s.data()}}catch(e){}
- const f=(k,l)=>`<label class="f">${l}</label><input class="inp" style="width:100%" data-k="${k}" type="number" value="${c[k]}">`;
+ const f=(k,l)=>`<label class="f">${l}</label><input class="inp" style="width:100%" data-k="${k}" inputmode="numeric" data-num value="${fmt(c[k])}">`;
  view(`<div class="card" style="max-width:560px"><div class="ttl">WALLET RATES</div>${f("diamondsPerDollar","কত ডায়মন্ডে $1")}${f("minWithdrawDiamonds","সর্বনিম্ন Withdraw (ডায়মন্ড)")}${f("minExchangeDiamonds","সর্বনিম্ন Exchange (ডায়মন্ড)")}${f("exchangeCoinsPer100","১০০ ডায়মন্ডে কত কয়েন")}${f("withdrawFeePercent","Withdraw ফি (%)")}${f("bdtPerLakhDiamonds","১ লাখ ডায়মন্ড = কত টাকা (হিসাবের জন্য)")}
  <button class="btn o" id="wsave" style="margin-top:16px">সেভ</button><div class="muted" style="margin-top:10px;font-size:13px">অ্যাপের পরের আপডেটে এই রেটগুলো অ্যাপ নিজে পড়ে নেবে।</div></div>`);
- $("#wsave").onclick=async()=>{const d={};document.querySelectorAll("[data-k]").forEach(i=>d[i.dataset.k]=Number(i.value));try{await setDoc(doc(db,"config","app"),{...d,updatedAt:serverTimestamp()},{merge:true});await log("wallet-rates","app",d);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
+ $("#wsave").onclick=async()=>{const d={};document.querySelectorAll("[data-k]").forEach(i=>d[i.dataset.k]=Number(String(i.value).replace(/[^0-9.]/g,"")));try{await setDoc(doc(db,"config","app"),{...d,updatedAt:serverTimestamp()},{merge:true});await log("wallet-rates","app",d);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
 }
 
 // ---------- Topup (by ID) ----------
@@ -753,7 +766,8 @@ async function deposits(){
    else{reason=await dlgp("বাতিলের কারণ লিখুন (ইউজার দেখবে):","Payment not found");if(reason===null)return}
    try{const b=writeBatch(db);b.update(doc(db,"deposits",id),{status:ok?"approved":"rejected",decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email,...(ok?{}:{reason})});
     if(ok){const us=await getDoc(doc(db,"users",a.uid));const r=new Set(us.data()?.roles||[]);r.add(a.role);const roles=[...r];
-     b.update(doc(db,"users",a.uid),{roles,coins:increment(Number(a.coins)||0),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles})}
+     b.update(doc(db,"users",a.uid),{roles,coins:increment(Number(a.coins)||0),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles});
+     b.set(doc(collection(db,"users",a.uid,"coinLog")),{type:"deposit",amount:Number(a.coins)||0,balance:(us.data()?.coins||0)+(Number(a.coins)||0),note:`${a.roleName} · $${a.amount}`,by:auth.currentUser.email,at:serverTimestamp()})}
     b.set(doc(collection(db,"users",a.uid,"inbox")),{title:ok?"Deposit approved":"Deposit rejected",body:ok?`Your $${a.amount} deposit was approved. You are now ${a.roleName} and ${fmt(a.coins)} coins were added to your account.`:`Your $${a.amount} deposit for ${a.roleName} was not approved. Reason: ${reason}`,kind:"deposit",at:serverTimestamp()});
     await b.commit();await log(ok?"deposit-approve":"deposit-reject",a.userId,{role:a.role,amount:a.amount,coins:a.coins,reason});toast("হয়ে গেছে ✓");deposits()}catch(e){toast("ব্যর্থ: "+e.message)}};
   document.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>decide(b.dataset.ok,true));
@@ -828,14 +842,14 @@ async function games(){
   <label class="f">ম্যাচ ফি (%)</label><input class="inp" id="gfee" type="number" min="0" max="30">
   <label class="f">৪ জনের খেলায় ভাগ (১ম % , ২য় %)</label><div style="display:flex;gap:8px"><input class="inp" id="gs1" type="number"><input class="inp" id="gs2" type="number"></div>
   <label class="f">কম্পিউটারের সাথে জিতলে গুণ (Easy / Normal / Hard)</label><div style="display:flex;gap:8px"><input class="inp" id="gbe" type="number" step="0.1"><input class="inp" id="gbn" type="number" step="0.1"><input class="inp" id="gbh" type="number" step="0.1"></div>
-  <label class="f">বাজির টেবিল (কমা দিয়ে)</label><input class="inp" id="gst" style="width:100%">
+  <label class="f">বাজির টেবিল ( | দিয়ে আলাদা করুন)</label><input class="inp" id="gst" style="width:100%">
   <button class="btn o" id="gsv" style="margin-top:14px">সেভ করুন</button></div>`);
- const D={enabled:true,feePct:5,split4:[70,30],botMult:{easy:1.4,normal:1.6,hard:2.0},stakes:[500,1000,5000,10000,50000,100000,500000,1000000]};
+ const D={enabled:true,feePct:10,split4:[70,30],botMult:{easy:1.4,normal:1.6,hard:2.0},stakes:[500,1000,5000,10000,50000,100000,500000,1000000]};
  let c=D;try{const g=(await getDoc(doc(db,"config","games"))).data()||{};c={...D,...g,botMult:{...D.botMult,...(g.botMult||{})}}}catch(e){}
  $("#gon").checked=c.enabled!==false;$("#gfee").value=c.feePct;$("#gs1").value=c.split4[0];$("#gs2").value=c.split4[1];
- $("#gbe").value=c.botMult.easy;$("#gbn").value=c.botMult.normal;$("#gbh").value=c.botMult.hard;$("#gst").value=c.stakes.join(", ");
+ $("#gbe").value=c.botMult.easy;$("#gbn").value=c.botMult.normal;$("#gbh").value=c.botMult.hard;$("#gst").value=c.stakes.map(fmt).join("  |  ");
  $("#gsv").onclick=async()=>{const n=x=>Number($(x).value);
-  const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split(",").map(x=>parseInt(x.trim())).filter(x=>x>0)};
+  const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split("|").map(x=>parseInt(x.replace(/[^0-9]/g,""))).filter(x=>x>0)};
   if(v.split4[0]+v.split4[1]!==100)return toast("৪ জনের ভাগ মিলে ১০০ হতে হবে");
   if(!(v.feePct>=0&&v.feePct<=30))return toast("ফি ০–৩০% এর মধ্যে দিন");
   if(!await dlg("গেম সেটিং সেভ করবেন?"))return;
