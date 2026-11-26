@@ -57,11 +57,9 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
-if [ -f /opt/ludomeet-game/service-account.json ]; then
-  chmod 600 /opt/ludomeet-game/service-account.json
-  systemctl enable --now ludomeet-game >/dev/null 2>&1; systemctl restart ludomeet-game
-  sleep 2; curl -s http://127.0.0.1:8090/health && echo " GAME_OK"
-else
-  echo "GAME_WAITING_FOR_KEY"
-fi
+# Always running: without the key file it waits in setup mode for
+# playludomeet.com/setup-key.html, then restarts with games on.
+[ -f /opt/ludomeet-game/service-account.json ] && chmod 600 /opt/ludomeet-game/service-account.json
+systemctl enable ludomeet-game >/dev/null 2>&1; systemctl restart ludomeet-game
+sleep 2; echo "GAME_HEALTH $(curl -s http://127.0.0.1:8090/health)"
 echo SETUP_DONE

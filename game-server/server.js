@@ -17,7 +17,34 @@ const ROOM_MS = 10 * 60000;                      // unfilled room expires
 const RECONNECT_MS = 120000;                     // auto-play while away
 const AUTO_MS = +process.env.AUTO_MS || 500;     // pause before an only-possible move
 
-const store = process.env.MEMORY ? memoryStore() : firestoreStore(process.env.KEY_FILE || '/opt/ludomeet-game/service-account.json');
+const fs = require('fs');
+const KEY_FILE = process.env.KEY_FILE || '/opt/ludomeet-game/service-account.json';
+const SETUP = !process.env.MEMORY && !fs.existsSync(KEY_FILE);
+const store = process.env.MEMORY ? memoryStore() : SETUP ? null : firestoreStore(KEY_FILE);
+
+// Setup mode (no key yet): only accepts the owner's Firebase key file from
+// playludomeet.com/setup-key.html, saves it and restarts with games on.
+function setupServer() {
+  const server = http.createServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    if (req.url.endsWith('/health')) return res.end(JSON.stringify({ ok: false, setup: true }));
+    if (!req.url.endsWith('/setup-key') || req.method !== 'POST') { res.statusCode = 404; return res.end('{}'); }
+    let body = '';
+    req.on('data', c => { body += c; if (body.length > 20000) req.destroy(); });
+    req.on('end', () => {
+      try {
+        const k = JSON.parse(body);
+        if (k.type !== 'service_account' || k.project_id !== 'ludomeet-fcea5' || !k.private_key || !k.client_email) throw new Error('This is not the LudoMeet Firebase key file.');
+        if (fs.existsSync(KEY_FILE)) throw new Error('A key is already installed.');
+        fs.writeFileSync(KEY_FILE, JSON.stringify(k), { mode: 0o600 });
+        res.end(JSON.stringify({ ok: true }));
+        log('key installed, restarting');
+        setTimeout(() => process.exit(0), 500);
+      } catch (e) { res.statusCode = 400; res.end(JSON.stringify({ ok: false, error: e.message })); }
+    });
+  });
+  server.listen(PORT, '127.0.0.1', () => log('setup mode on', PORT));
+}
 
 const clients = new Map();   // uid -> ws
 const rooms = new Map();     // code -> room
@@ -318,6 +345,7 @@ function onConnection(ws) {
 }
 
 async function main() {
+  if (SETUP) return setupServer();
   const n = await store.recover().catch(e => { log('recover failed', e.message); return 0; });
   if (n) log('refunded', n, 'stakes from before restart');
   const server = http.createServer((req, res) => {
