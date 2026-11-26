@@ -350,7 +350,7 @@ setLang(LANG);
 const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
  ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
- ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
+ ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["games","🎲","অনলাইন গেম আয়"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
  ["APP DATA",[["rooms","🎙️","ভয়েস রুম","শীঘ্রই"],["gifts","🎁","গিফট","শীঘ্রই"],["games","🎲","গেম ডেটা","শীঘ্রই"]]],
 ];
 let current="dash";
@@ -813,8 +813,43 @@ async function reports(){
  }catch(e){$("#rlist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 
+async function games(){
+ view(`<div class="card"><div class="ttl">অনলাইন গেম — আয়ের হিসাব (বাংলাদেশ সময়)</div><div class="tw" id="gstat"><div class="empty">লোড হচ্ছে…</div></div></div>
+  <div class="card"><div class="ttl">সাম্প্রতিক ম্যাচ</div><div class="tw" id="gmat"><div class="empty">লোড হচ্ছে…</div></div></div>
+  <div class="card" style="max-width:640px"><div class="ttl">গেম সেটিং</div><div class="muted">এখানে বদলালে ৩০ সেকেন্ডের মধ্যে সার্ভারে কার্যকর হবে।</div>
+  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="gon" style="width:22px;height:22px"> অনলাইন গেম চালু</label>
+  <label class="f">ম্যাচ ফি (%)</label><input class="inp" id="gfee" type="number" min="0" max="30">
+  <label class="f">৪ জনের খেলায় ভাগ (১ম % , ২য় %)</label><div style="display:flex;gap:8px"><input class="inp" id="gs1" type="number"><input class="inp" id="gs2" type="number"></div>
+  <label class="f">কম্পিউটারের সাথে জিতলে গুণ (Easy / Normal / Hard)</label><div style="display:flex;gap:8px"><input class="inp" id="gbe" type="number" step="0.1"><input class="inp" id="gbn" type="number" step="0.1"><input class="inp" id="gbh" type="number" step="0.1"></div>
+  <label class="f">বাজির টেবিল (কমা দিয়ে)</label><input class="inp" id="gst" style="width:100%">
+  <button class="btn o" id="gsv" style="margin-top:14px">সেভ করুন</button></div>`);
+ const D={enabled:true,feePct:5,split4:[70,30],botMult:{easy:1.4,normal:1.6,hard:2.0},stakes:[500,1000,5000,10000,50000,100000,500000,1000000]};
+ let c=D;try{const g=(await getDoc(doc(db,"config","games"))).data()||{};c={...D,...g,botMult:{...D.botMult,...(g.botMult||{})}}}catch(e){}
+ $("#gon").checked=c.enabled!==false;$("#gfee").value=c.feePct;$("#gs1").value=c.split4[0];$("#gs2").value=c.split4[1];
+ $("#gbe").value=c.botMult.easy;$("#gbn").value=c.botMult.normal;$("#gbh").value=c.botMult.hard;$("#gst").value=c.stakes.join(", ");
+ $("#gsv").onclick=async()=>{const n=x=>Number($(x).value);
+  const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split(",").map(x=>parseInt(x.trim())).filter(x=>x>0)};
+  if(v.split4[0]+v.split4[1]!==100)return toast("৪ জনের ভাগ মিলে ১০০ হতে হবে");
+  if(!(v.feePct>=0&&v.feePct<=30))return toast("ফি ০–৩০% এর মধ্যে দিন");
+  if(!confirm("গেম সেটিং সেভ করবেন?"))return;
+  try{await setDoc(doc(db,"config","games"),v,{merge:true});await log("game-settings","config",v);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
+ const nf=x=>(x||0).toLocaleString("en-US");
+ try{const s=await getDocs(query(collection(db,"gameStats"),orderBy("day","desc"),limit(31)));
+  if(!s.size){$("#gstat").innerHTML=`<div class="empty">এখনো কোনো ম্যাচ হয়নি</div>`}else{
+  let tot={m:0,f:0,b:0,i:0};const rows=s.docs.map(d=>{const g=d.data();tot.m+=g.matches||0;tot.f+=g.fees||0;tot.b+=g.botIncome||0;tot.i+=g.income||0;
+   const st=Object.entries(g.byStake||{}).sort((a,b)=>a[0]-b[0]).map(([k,v])=>`${nf(+k)}: ${nf(v.income)} (${v.matches})`).join("<br>");
+   const md=Object.entries(g.byMode||{}).map(([k,v])=>`${k}: ${nf(v.income)} (${v.matches})`).join("<br>");
+   return `<tr><td><b>${g.day}</b></td><td>${nf(g.matches)}</td><td>${nf(g.fees)}</td><td>${nf(g.botIncome)}</td><td><b>${nf(g.income)}</b></td><td style="font-size:12px">${st}</td><td style="font-size:12px">${md}</td></tr>`}).join("");
+  $("#gstat").innerHTML=`<table><tr><th>দিন</th><th>ম্যাচ</th><th>ম্যাচ ফি আয়</th><th>কম্পিউটার খেলা আয়</th><th>মোট আয় (কয়েন)</th><th>টেবিল অনুযায়ী</th><th>ধরন অনুযায়ী</th></tr>${rows}<tr style="background:var(--mint)"><td><b>মোট</b></td><td>${nf(tot.m)}</td><td>${nf(tot.f)}</td><td>${nf(tot.b)}</td><td><b>${nf(tot.i)}</b></td><td></td><td></td></tr></table>`}
+ }catch(e){$("#gstat").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+ try{const s=await getDocs(query(collection(db,"matches"),orderBy("at","desc"),limit(50)));
+  $("#gmat").innerHTML=s.size?`<table><tr><th>সময়</th><th>ধরন</th><th>টেবিল</th><th>খেলোয়াড়</th><th>পেয়েছে</th><th>আয়</th></tr>${s.docs.map(d=>{const m=d.data();return `<tr><td>${dt(m.at)}</td><td>${esc(m.mode)}</td><td>${nf(m.stake)}</td><td style="font-size:12px">${(m.players||[]).map(p=>`<span data-up="${p.startsWith("bot")?"":p}" style="cursor:pointer;text-decoration:underline">${esc(p.slice(0,8))}</span>`).join(", ")}</td><td style="font-size:12px">${(m.credits||[]).map(c=>`${esc(c.uid.slice(0,8))}: ${nf(c.amount)}`).join("<br>")}</td><td><b>${nf(m.income)}</b></td></tr>`}).join("")}</table>`:`<div class="empty">এখনো কোনো ম্যাচ হয়নি</div>`;
+  document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>b.dataset.up&&userProfile(b.dataset.up));
+ }catch(e){$("#gmat").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
-const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports};
+const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports,games};
 
 // ---------- Auth ----------
 $("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};
