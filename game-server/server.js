@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { Ludo } = require('./ludo');
 const { memoryStore, firestoreStore } = require('./store');
+const { RtcTokenBuilder, RtcRole } = require('agora-token');
 
 const PORT = +process.env.PORT || 8090;
 const TURN_MS = +process.env.TURN_MS || 15000;   // time to roll or move
@@ -16,6 +17,8 @@ const QUEUE_MS = +process.env.QUEUE_MS || 60000; // random match search
 const ROOM_MS = 10 * 60000;                      // unfilled room expires
 const GRACE_MS = +process.env.GRACE_MS || 60000; // time to come back after the net drops
 const AUTO_MS = +process.env.AUTO_MS || 500;     // pause before an only-possible move
+const COUNT_MS = process.env.COUNT_MS != null ? +process.env.COUNT_MS : 3000; // 3-2-1 before the first turn
+const WAIT_AWAY_MS = +process.env.WAIT_AWAY_MS || 180000; // a waiting player who switched apps (e.g. to share the link)
 
 const fs = require('fs');
 const KEY_FILE = process.env.KEY_FILE || '/opt/ludomeet-game/service-account.json';
@@ -54,27 +57,55 @@ const userRoom = new Map();  // uid -> code
 const queues = new Map();    // stake -> [{ uid, timer }]
 
 const send = (uid, msg) => { const ws = clients.get(uid); if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); };
-const code6 = () => { let c; do { c = String(100000 + crypto.randomInt(900000)); } while (rooms.has(c)); return c; };
+// Room codes are never used twice: once a room is over, its link stays "over".
+async function code6() {
+  for (;;) {
+    const c = String(100000 + crypto.randomInt(900000));
+    if (!rooms.has(c) && !(await store.roomUsed(c).catch(() => false))) return c;
+  }
+}
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const err = code => Object.assign(new Error(code), { code });
 
 function roomInfo(r) {
   return { t: 'room', code: r.code, stake: r.stake, size: r.size, teams: r.teams, kind: r.kind, status: r.status,
-    seats: r.seats.map(s => ({ uid: s.uid, name: s.name, userId: s.userId, bot: !!s.bot, level: s.level || null, out: !!s.out })) };
+    seats: r.seats.map((s, i) => ({ uid: s.uid, name: s.name, userId: s.userId, bot: !!s.bot, level: s.level || null, out: !!s.out, vuid: i + 1 })) };
 }
 const broadcast = (r, msg) => r.seats.forEach(s => !s.bot && send(s.uid, msg));
 const seatOf = (r, uid) => r.seats.find(s => s.uid === uid);
 
-function newRoom({ kind, stake, size, teams = false, level = null }) {
-  const r = { code: code6(), matchId: crypto.randomUUID(), kind, stake, size, teams, level, seats: [], status: 'waiting', createdAt: Date.now() };
+async function newRoom({ kind, stake, size, teams = false, level = null }) {
+  const r = { code: await code6(), matchId: crypto.randomUUID(), kind, stake, size, teams, level, seats: [], status: 'waiting', createdAt: Date.now() };
   rooms.set(r.code, r);
   r.expire = setTimeout(() => closeRoom(r, 'expired'), ROOM_MS);
   return r;
 }
 
+const modeName = r => r.kind === 'bot' ? `vs computer (${r.level})` : r.teams ? 'team 2 vs 2' : `${r.size} players`;
+
+// Public room status for links and invite cards.
+function saveStatus(r, status) {
+  if (r.kind !== 'private') return;
+  const owner = seatOf(r, r.owner) || {};
+  store.roomStatus(r.code, { code: r.code, status, stake: r.stake, size: r.size, teams: r.teams, filled: r.seats.length,
+    owner: r.owner || '', ownerName: owner.name || '', ownerId: owner.userId || '' }).catch(e => log('roomStatus', e.message));
+}
+
+// Voice (Agora): each human gets a token for this game's channel.
+const AGORA = () => { try { return JSON.parse(fs.readFileSync(AGORA_FILE, 'utf8')); } catch { return null; } };
+function sendVoice(r, uid) {
+  if (r.kind === 'bot') return;
+  const a = AGORA(); if (!a) return;
+  const i = r.seats.findIndex(s => s.uid === uid); if (i < 0) return;
+  const channel = 'ludo_' + r.matchId.replace(/-/g, '').slice(0, 24);
+  const token = RtcTokenBuilder.buildTokenWithUid(a.appId, a.cert, channel, i + 1, RtcRole.PUBLISHER, 3 * 3600, 3 * 3600);
+  send(uid, { t: 'voice', appId: a.appId, channel, vuid: i + 1, token, blocks: r.blocks || [] });
+}
+
 // Taking a seat costs nothing yet. Coins are taken only when the game starts.
 async function addSeat(r, uid) {
   if ((await store.coins(uid)) < r.stake) throw err('NO_COINS');
+  for (const s of r.seats) if (!s.bot && await store.blocked(uid, s.uid).catch(() => false)) throw err('BLOCKED');
   const p = await store.profile(uid).catch(() => ({ name: 'Player', userId: '' }));
   r.seats.push({ uid, name: p.name, userId: p.userId });
   userRoom.set(uid, r.code);
@@ -89,6 +120,8 @@ async function closeRoom(r, reason) {
   if (r.status === 'closed' || r.status === 'playing' || r.status === 'finishing') return;
   r.status = 'closed';
   clearTimeout(r.expire);
+  r.seats.forEach(s => clearTimeout(s.awayTimer));
+  saveStatus(r, 'cancelled');
   for (const s of r.seats) if (s.lockId) await store.refund(s.lockId).catch(e => log('refund', e.message));
   broadcast(r, { t: 'closed', code: r.code, reason });
   r.seats.forEach(s => userRoom.get(s.uid) === r.code && userRoom.delete(s.uid));
@@ -103,7 +136,7 @@ async function tryStart(r) {
   const short = [];
   for (const s of r.seats) {
     if (s.bot) continue;
-    try { s.lockId = await store.lock(s.uid, r.stake, r.matchId); }
+    try { s.lockId = await store.lock(s.uid, r.stake, r.matchId, `Online Ludo · ${modeName(r)} · table ${r.stake.toLocaleString('en-US')}${r.kind === 'private' ? ' · room ' + r.code : ''}`); }
     catch (e) { short.push(s); send(s.uid, { t: 'error', for: 'start', code: e.code || 'ERROR' }); }
   }
   if (short.length) {
@@ -114,17 +147,26 @@ async function tryStart(r) {
     broadcast(r, roomInfo(r));
     return false;
   }
-  startGame(r);
+  await startGame(r);
   return true;
 }
 
-function startGame(r) {
+async function startGame(r) {
   clearTimeout(r.expire);
   r.status = 'playing';
+  r.seats.forEach(s => clearTimeout(s.awayTimer));
   const seats = r.seats.map((s, i) => ({ id: s.uid, team: r.teams ? i % 2 : null }));
   r.game = new Ludo(seats, { needed: r.size === 4 && !r.teams ? 2 : 1 });
-  broadcast(r, { ...roomInfo(r), t: 'start', state: r.game.state() });
-  nextTurn(r);
+  // Players who blocked each other never hear each other.
+  r.blocks = [];
+  const humans = r.seats.filter(s => !s.bot);
+  for (let i = 0; i < humans.length; i++) for (let j = i + 1; j < humans.length; j++)
+    if (await store.blocked(humans[i].uid, humans[j].uid).catch(() => false)) r.blocks.push([humans[i].uid, humans[j].uid]);
+  saveStatus(r, 'playing');
+  broadcast(r, { ...roomInfo(r), t: 'start', state: r.game.state(), countdown: COUNT_MS });
+  humans.forEach(s => sendVoice(r, s.uid));
+  clearTimeout(r.timer);
+  r.timer = setTimeout(() => safe(r, () => nextTurn(r)), COUNT_MS);
 }
 
 // Who taps for the current colour: its owner, or the team mate of a player who left.
@@ -229,12 +271,14 @@ async function finish(r) {
   const cfg = await store.config();
   const p = payouts(r, cfg);
   const record = { id: r.matchId, game: 'ludo', mode: r.kind === 'bot' ? `bot_${r.level}` : r.teams ? 'team' : `${r.size}p`,
+    note: `Won Online Ludo · ${modeName(r)} · table ${r.stake.toLocaleString('en-US')}${r.kind === 'private' ? ' · room ' + r.code : ''}`,
     stake: r.stake, players: r.seats.map(s => s.bot ? `bot:${s.level}` : s.uid), ranking: p.ranking, credits: p.credits,
     fee: p.fee, botIncome: p.botIncome, income: p.income };
   try {
     await store.settle(r.seats.filter(s => s.lockId).map(s => s.lockId), p.credits, record);
   } catch (e) { log('settle failed', r.matchId, e.message); }
   r.seats.forEach(s => !s.bot && send(s.uid, { t: 'over', code: r.code, ranking: p.ranking, credits: p.credits, stake: r.stake }));
+  saveStatus(r, 'over');
   r.status = 'closed';
   r.seats.forEach(s => userRoom.get(s.uid) === r.code && userRoom.delete(s.uid));
   rooms.delete(r.code);
@@ -272,30 +316,81 @@ const handlers = {
   async create(uid, m) {
     busy(uid); await checkStake(m.stake);
     const teams = !!m.teams, size = teams ? 4 : [2, 3, 4].includes(m.size) ? m.size : 2;
-    const r = newRoom({ kind: 'private', stake: m.stake, size, teams });
+    const r = await newRoom({ kind: 'private', stake: m.stake, size, teams });
     try { await addSeat(r, uid); } catch (e) { rooms.delete(r.code); clearTimeout(r.expire); throw e; }
     r.owner = uid;
+    saveStatus(r, 'open');
     send(uid, roomInfo(r));
   },
 
   async join(uid, m) {
     busy(uid);
     const r = rooms.get(String(m.code));
-    if (!r || r.kind !== 'private' || r.status !== 'waiting') throw err('NO_ROOM');
+    if (!r) {
+      const old = await store.room(String(m.code)).catch(() => null);
+      throw err(old && old.status === 'over' ? 'ROOM_OVER' : old && old.status === 'playing' ? 'ROOM_PLAYING' : old ? 'ROOM_CANCELLED' : 'NO_ROOM');
+    }
+    if (r.kind !== 'private') throw err('NO_ROOM');
+    if (r.status === 'playing' || r.status === 'starting') throw err('ROOM_PLAYING');
+    if (r.status !== 'waiting') throw err('NO_ROOM');
     if (r.seats.length >= r.size) throw err('ROOM_FULL');
     await addSeat(r, uid);
     if (r.seats.length === r.size) { if (await tryStart(r)) return; }
-    else broadcast(r, roomInfo(r));
+    else { saveStatus(r, 'open'); broadcast(r, roomInfo(r)); }
+  },
+
+  // What a link or invite card should show before joining.
+  async peek(uid, m) {
+    const code = String(m.code || '');
+    const r = rooms.get(code);
+    let info;
+    if (r && r.kind === 'private') {
+      const o = seatOf(r, r.owner) || r.seats[0] || {};
+      const status = r.status === 'waiting' ? (r.seats.length >= r.size ? 'full' : 'open') : r.status === 'playing' || r.status === 'starting' ? 'playing' : 'over';
+      info = { status, stake: r.stake, size: r.size, teams: r.teams, filled: r.seats.length, owner: r.owner, ownerName: o.name, ownerId: o.userId };
+    } else {
+      const d = await store.room(code).catch(() => null);
+      info = d ? { ...d, status: d.status === 'open' ? 'cancelled' : d.status } : { status: 'none' };
+      delete info.updatedAt;
+    }
+    send(uid, { t: 'peek', code, ...info });
+  },
+
+  // A gift during a game: the receiver gets 80% as diamonds.
+  async gift(uid, m) {
+    const r = rooms.get(userRoom.get(uid));
+    if (!r || r.status !== 'playing') throw err('NO_ROOM');
+    const from = seatOf(r, uid), to = seatOf(r, String(m.to || ''));
+    if (!to || to.bot || to.uid === uid) throw err('BAD_GIFT');
+    if (await store.blocked(uid, to.uid).catch(() => false)) throw err('BLOCKED');
+    const g = await store.gift(uid, to.uid, String(m.giftId || ''), { fromName: from.name, fromId: from.userId, toName: to.name, toId: to.userId, where: 'Online Ludo · room ' + r.code });
+    broadcast(r, { t: 'gift', from: uid, to: to.uid, giftId: String(m.giftId), name: g.name, price: g.price, diamonds: g.diamonds });
+  },
+
+  // Re-send my voice ticket (e.g. after the app was in the background).
+  async voice(uid) {
+    const r = rooms.get(userRoom.get(uid));
+    if (r && r.status === 'playing') sendVoice(r, uid);
   },
 
   async invite(uid, m) {
     const r = rooms.get(userRoom.get(uid));
     if (!r || r.status !== 'waiting') throw err('NO_ROOM');
     const me = seatOf(r, uid);
+    const cfg = await store.config();
+    const keep = (100 - cfg.feePct) / 100;
+    const pot = r.stake * r.size * keep;
+    const prize = r.teams ? [Math.floor(pot / 2)] : r.size === 4 ? cfg.split4.map(x => Math.floor(pot * x / 100)) : [Math.floor(pot)];
+    const data = { code: r.code, stake: r.stake, size: r.size, teams: r.teams, prize, fromUid: uid, fromName: me.name, fromId: me.userId };
+    let sent = 0;
     for (const to of (m.to || []).slice(0, 50)) {
-      await store.invite(uid, to, { code: r.code, stake: r.stake, size: r.size, teams: r.teams, fromName: me.name, fromId: me.userId });
-      send(to, { t: 'invite', code: r.code, stake: r.stake, size: r.size, teams: r.teams, fromName: me.name, fromId: me.userId });
+      if (typeof to !== 'string' || to === uid) continue;
+      if (await store.blocked(uid, to).catch(() => false)) continue;
+      await store.invite(uid, to, data).catch(e => log('invite', e.message));
+      send(to, { t: 'invite', ...data });
+      sent++;
     }
+    send(uid, { t: 'invited', sent });
   },
 
   async leave(uid) {
@@ -303,9 +398,11 @@ const handlers = {
     const r = rooms.get(userRoom.get(uid));
     if (!r) { send(uid, { t: 'left' }); return; }
     if (r.status === 'waiting') {
+      clearTimeout((seatOf(r, uid) || {}).awayTimer);
       dropSeat(r, uid);
       send(uid, { t: 'left' });
       if (r.seats.length === 0 || uid === r.owner) return closeRoom(r, 'owner_left');
+      saveStatus(r, 'open');
       broadcast(r, roomInfo(r));
     } else if (r.status === 'playing') {
       forfeit(r, uid, 'left');
@@ -318,10 +415,16 @@ const handlers = {
     if ((await store.coins(uid)) < m.stake) throw err('NO_COINS');
     const q = queues.get(m.stake) || [];
     queues.set(m.stake, q);
-    const other = q.shift();
+    // Never pair two players where one blocked the other.
+    let other = null;
+    for (let i = 0; i < q.length; i++) {
+      if (q[i].uid === uid) continue;
+      if (await store.blocked(uid, q[i].uid).catch(() => false)) continue;
+      [other] = q.splice(i, 1); break;
+    }
     if (!other) { queueUp(uid, m.stake); send(uid, { t: 'searching', stake: m.stake, ms: QUEUE_MS }); return; }
     clearTimeout(other.timer);
-    const r = newRoom({ kind: 'random', stake: m.stake, size: 2 });
+    const r = await newRoom({ kind: 'random', stake: m.stake, size: 2 });
     for (const id of [other.uid, uid]) {
       const p = await store.profile(id).catch(() => ({ name: 'Player', userId: '' }));
       r.seats.push({ uid: id, name: p.name, userId: p.userId });
@@ -337,7 +440,7 @@ const handlers = {
   async bot(uid, m) {
     busy(uid); await checkStake(m.stake);
     const level = ['easy', 'normal', 'hard'].includes(m.level) ? m.level : 'normal';
-    const r = newRoom({ kind: 'bot', stake: m.stake, size: 2, level });
+    const r = await newRoom({ kind: 'bot', stake: m.stake, size: 2, level });
     try { await addSeat(r, uid); } catch (e) { rooms.delete(r.code); clearTimeout(r.expire); throw e; }
     r.seats.push({ uid: `bot-${r.code}`, bot: true, level, name: `Computer (${level})`, userId: '' });
     if (!(await tryStart(r))) throw err('NO_COINS');
@@ -379,9 +482,9 @@ function onConnection(ws) {
         const r = rooms.get(userRoom.get(uid));
         if (r) {
           const s = seatOf(r, uid);
-          if (s) { s.goneAt = null; clearTimeout(s.grace); }
+          if (s) { s.goneAt = null; clearTimeout(s.grace); clearTimeout(s.awayTimer); }
           ws.send(JSON.stringify({ ...roomInfo(r), t: r.status === 'playing' ? 'resume' : 'room', state: r.game ? r.game.state() : null }));
-          if (r.status === 'playing') broadcast(r, { t: 'back', uid });
+          if (r.status === 'playing') { broadcast(r, { t: 'back', uid }); sendVoice(r, uid); }
         }
         return;
       }
@@ -406,7 +509,9 @@ function onConnection(ws) {
         broadcast(r, { t: 'away', uid, ms: GRACE_MS });
       }
     } else if (r && r.status === 'waiting') {
-      handlers.leave(uid).catch(() => {});
+      // Switching to WhatsApp to share the link must not close the room: wait a few minutes.
+      const s = seatOf(r, uid);
+      if (s) { clearTimeout(s.awayTimer); s.awayTimer = setTimeout(() => !clients.has(uid) && handlers.leave(uid).catch(() => {}), WAIT_AWAY_MS); }
     }
     leaveQueue(uid);
   });
@@ -440,11 +545,21 @@ async function main() {
     res.statusCode = 404; res.end();
   });
   const wss = new WebSocketServer({ server, maxPayload: 4096 });
+  // Live numbers for the admin panel.
+  const liveTimer = setInterval(() => {
+    let waiting = 0, playing = 0, inGames = 0; const byMode = {};
+    for (const r of rooms.values()) {
+      if (r.status === 'waiting') waiting++;
+      if (r.status === 'playing') { playing++; inGames += r.seats.filter(s => !s.bot && !s.out).length; const k = modeName(r); byMode[k] = (byMode[k] || 0) + 1; }
+    }
+    let searching = 0; for (const q of queues.values()) searching += q.length;
+    store.live({ online: clients.size, waitingRooms: waiting, playing, playersInGames: inGames, searching, byMode }).catch(() => {});
+  }, 15000);
   wss.on('connection', onConnection);
   const ping = setInterval(() => wss.clients.forEach(w => { if (w.alive === false) return w.terminate(); w.alive = false; w.ping(); }), 30000);
   wss.on('connection', w => { w.alive = true; w.on('pong', () => (w.alive = true)); });
   server.listen(PORT, '127.0.0.1', () => log('game server on', PORT, store.kind));
-  return { server, wss, stop: () => { clearInterval(ping); wss.close(); server.close(); } };
+  return { server, wss, stop: () => { clearInterval(ping); clearInterval(liveTimer); wss.close(); server.close(); } };
 }
 
 module.exports = { main, store, rooms, payouts };

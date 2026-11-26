@@ -2,7 +2,7 @@
 // Plays real games against the server (in-memory coins) and checks that no
 // coins appear or disappear. Run: npm test
 process.env.MEMORY = '1'; process.env.PORT = '18090';
-process.env.TURN_MS = '60'; process.env.BOT_MS = '5'; process.env.QUEUE_MS = '300'; process.env.AUTO_MS = '5';
+process.env.TURN_MS = '60'; process.env.BOT_MS = '5'; process.env.QUEUE_MS = '300'; process.env.AUTO_MS = '5'; process.env.COUNT_MS = '0';
 const WebSocket = require('ws');
 const { main, store } = require('./server');
 const assert = require('assert');
@@ -116,6 +116,33 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   assert.equal(total(), s0 - 200);
   houseIncome += 200;
   console.log('leave = lose ok');
+
+  // 10) room links: over after a game, never reusable; full rooms refuse
+  const s1 = total();
+  a.send({ t: 'peek', code: rl.code }); let pk = await a.wait('peek'); assert.equal(pk.status, 'over');
+  c.send({ t: 'join', code: rl.code }); e = await c.wait('error'); assert.equal(e.code, 'ROOM_OVER');
+  a.send({ t: 'create', stake: 500, size: 2 }); const rp = await a.wait('room');
+  a.send({ t: 'peek', code: rp.code }); pk = await a.wait('peek'); assert.equal(pk.status, 'open'); assert.equal(pk.ownerName, 'a');
+  a.send({ t: 'invite', to: ['c', 'd'] }); const inv = await c.wait('invite'); assert.equal(inv.prize[0], 900); await a.wait('invited');
+  b.send({ t: 'join', code: rp.code }); await a.wait('start');
+  c.send({ t: 'join', code: rp.code }); e = await c.wait('error'); assert.equal(e.code, 'ROOM_PLAYING');
+
+  // 11) gifts in a game: 80% to the receiver as diamonds
+  const ac = store.users.get('a').coins;
+  a.send({ t: 'gift', to: 'b', giftId: 'rose' }); const gm = await b.wait('gift');
+  assert.equal(gm.diamonds, 80); assert.equal(store.users.get('a').coins, ac - 100); assert.equal(store.users.get('b').diamonds, 80);
+  await a.wait('over', 60000);
+  assert.equal(total(), s1 - 100 - 100, 'gift coins + match fee left the pool');
+  console.log('links, full rooms and gifts ok');
+
+  // 12) blocked players are never matched together
+  store.blocks.add('a>b');
+  a.send({ t: 'random', stake: 1000 }); b.send({ t: 'random', stake: 1000 });
+  await a.wait('noMatch'); await b.wait('noMatch');
+  a.send({ t: 'create', stake: 500, size: 2 }); const rb = await a.wait('room');
+  b.send({ t: 'join', code: rb.code }); e = await b.wait('error'); assert.equal(e.code, 'BLOCKED');
+  a.send({ t: 'leave' }); await a.wait('left');
+  console.log('blocks ok');
 
   // 8) no lock left open
   assert.equal([...store.locks.values()].filter(l => l.status === 'locked').length, 0);

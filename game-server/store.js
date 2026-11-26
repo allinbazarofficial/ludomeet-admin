@@ -14,6 +14,7 @@ const DEFAULTS = {
   stakes: [500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
   split4: [70, 30],
   botMult: { easy: 1.4, normal: 1.6, hard: 2.0 },
+  giftPct: 80, // share of a gift's price the receiver gets as diamonds
 };
 
 const id = () => crypto.randomBytes(10).toString('hex');
@@ -65,6 +66,26 @@ function memoryStore() {
       for (const [lid, l] of locks) if (l.status === 'locked') await this.refund(lid);
     },
     async invite(from, to, data) { invites.push({ from, to, ...data }); },
+    blocks: new Set(),
+    async blocked(a, b) { return this.blocks.has(a + '>' + b) || this.blocks.has(b + '>' + a); },
+    roomDocs: new Map(),
+    async roomUsed(code) { return this.roomDocs.has(code); },
+    async roomStatus(code, data) { this.roomDocs.set(code, { ...(this.roomDocs.get(code) || {}), ...data }); },
+    async room(code) { return this.roomDocs.get(code) || null; },
+    gifts: { rose: { name: 'Rose', price: 100, active: true } },
+    giftLog: [],
+    async gift(from, to, giftId, ctx) {
+      const g = this.gifts[giftId];
+      if (!g || !g.active) { const e = new Error('NO_GIFT'); e.code = 'NO_GIFT'; throw e; }
+      const u = user(from);
+      if (u.coins < g.price) { const e = new Error('NO_COINS'); e.code = 'NO_COINS'; throw e; }
+      u.coins -= g.price;
+      const d = Math.floor(g.price * config.giftPct / 100);
+      const r = user(to); r.diamonds = (r.diamonds || 0) + d;
+      this.giftLog.push({ from, to, giftId, price: g.price, diamonds: d, ...ctx });
+      return { name: g.name, price: g.price, diamonds: d };
+    },
+    async live() {},
   };
 }
 
@@ -140,7 +161,7 @@ function firestoreStore(keyFile) {
           const before = (users[i].data() || {}).coins || 0;
           tx.update(uref, { coins: FV.increment(c.amount), updatedAt: FV.serverTimestamp() });
           tx.set(uref.collection('coinLog').doc(), { type: 'game_win', amount: c.amount, balance: before + c.amount,
-            note: record.mode.startsWith('bot') ? 'Won vs computer (' + record.mode.slice(4) + ')' : 'Won online Ludo (' + record.mode + ')', ref: record.id, at: FV.serverTimestamp() });
+            note: record.note || (record.mode.startsWith('bot') ? 'Won vs computer (' + record.mode.slice(4) + ')' : 'Won online Ludo (' + record.mode + ')'), ref: record.id, at: FV.serverTimestamp() });
         });
         tx.set(db.collection('matches').doc(record.id), { ...record, at: FV.serverTimestamp() });
         const day = bdDay();
@@ -148,6 +169,7 @@ function firestoreStore(keyFile) {
         tx.set(db.collection('gameStats').doc(day), {
           day,
           matches: FV.increment(1),
+          players: FV.increment(record.players.filter(p => !String(p).startsWith('bot')).length),
           fees: FV.increment(record.fee || 0),
           botIncome: FV.increment(record.botIncome || 0),
           income: FV.increment(record.income),
@@ -165,8 +187,64 @@ function firestoreStore(keyFile) {
     },
 
     async invite(from, to, data) {
-      await db.collection('users').doc(to).collection('gameInvites').add({ from, ...data, at: FV.serverTimestamp() });
+      const b = db.batch();
+      b.set(db.collection('users').doc(to).collection('gameInvites').doc(), { from, ...data, at: FV.serverTimestamp() });
+      // The invite also shows in their chat as a Ludo room card, every time it is sent.
+      const chatId = from < to ? `${from}_${to}` : `${to}_${from}`;
+      const chat = db.collection('chats').doc(chatId);
+      const msg = chat.collection('messages').doc();
+      b.set(msg, { from, to, type: 'game_invite', text: '', game: data, at: FV.serverTimestamp(), seen: false });
+      b.set(chat, { members: chatId.split('_'), last: { type: 'game_invite', text: '', from, mid: msg.id }, updatedAt: FV.serverTimestamp(), unread: { [to]: FV.increment(1) } }, { merge: true });
+      await b.commit();
     },
+
+    async blocked(a, b) {
+      const [x, y] = await Promise.all([
+        db.collection('users').doc(a).collection('blocked').doc(b).get(),
+        db.collection('users').doc(b).collection('blocked').doc(a).get(),
+      ]);
+      return x.exists || y.exists;
+    },
+
+    // rooms/{code}: lets invite cards and links show if a room is open, full, playing, over or cancelled.
+    async roomUsed(code) { return (await db.collection('rooms').doc(code).get()).exists; },
+    async roomStatus(code, data) { await db.collection('rooms').doc(code).set({ ...data, updatedAt: FV.serverTimestamp() }, { merge: true }); },
+    async room(code) { const d = await db.collection('rooms').doc(code).get(); return d.exists ? d.data() : null; },
+
+    // A gift in a game: the sender pays coins, the receiver gets giftPct% as diamonds, the rest is income.
+    async gift(from, to, giftId, ctx) {
+      const cfg = await this.config();
+      return db.runTransaction(async tx => {
+        const gref = db.collection('gifts').doc(String(giftId));
+        const fref = db.collection('users').doc(from), tref = db.collection('users').doc(to);
+        const [g, f, t] = await Promise.all([tx.get(gref), tx.get(fref), tx.get(tref)]);
+        const gd = g.data();
+        if (!g.exists || gd.active === false) { const e = new Error('NO_GIFT'); e.code = 'NO_GIFT'; throw e; }
+        if (!t.exists) { const e = new Error('NO_USER'); e.code = 'NO_USER'; throw e; }
+        const price = Math.floor(gd.price || 0);
+        const fc = (f.data() || {}).coins || 0;
+        if (fc < price) { const e = new Error('NO_COINS'); e.code = 'NO_COINS'; throw e; }
+        const dia = Math.floor(price * (cfg.giftPct ?? 80) / 100);
+        const td = (t.data() || {}).diamonds || 0;
+        tx.update(fref, { coins: FV.increment(-price), levelCoins: FV.increment(price), updatedAt: FV.serverTimestamp() });
+        tx.update(tref, { diamonds: FV.increment(dia), lifetimeDiamonds: FV.increment(dia), levelCoins: FV.increment(price), updatedAt: FV.serverTimestamp() });
+        tx.set(db.collection('profiles').doc(from), { levelCoins: FV.increment(price) }, { merge: true });
+        tx.set(db.collection('profiles').doc(to), { levelCoins: FV.increment(price) }, { merge: true });
+        tx.set(fref.collection('coinLog').doc(), { type: 'gift_sent', amount: -price, balance: fc - price,
+          note: `${gd.name || 'Gift'} to ${ctx.toName} (ID ${ctx.toId})`, ref: ctx.where, at: FV.serverTimestamp() });
+        tx.set(tref.collection('diamondLog').doc(), { type: 'gift_received', amount: dia, balance: td + dia,
+          note: `${gd.name || 'Gift'} from ${ctx.fromName} (ID ${ctx.fromId})`, fromUid: from, fromName: ctx.fromName, fromId: ctx.fromId,
+          gift: gd.name || '', price, ref: ctx.where, at: FV.serverTimestamp() });
+        const day = bdDay();
+        tx.set(db.collection('giftStats').doc(day), { day, count: FV.increment(1), coins: FV.increment(price), diamonds: FV.increment(dia), income: FV.increment(price - dia) }, { merge: true });
+        tx.set(db.collection('giftLog').doc(), { from, to, fromName: ctx.fromName, fromId: ctx.fromId, toName: ctx.toName, toId: ctx.toId,
+          gift: gd.name || '', giftId: String(giftId), price, diamonds: dia, income: price - dia, where: ctx.where, day, at: FV.serverTimestamp() });
+        return { name: gd.name || 'Gift', price, diamonds: dia };
+      });
+    },
+
+    // Live numbers for the admin panel, written every few seconds.
+    async live(data) { await db.collection('gameLive').doc('now').set({ ...data, at: FV.serverTimestamp() }); },
   };
 }
 
