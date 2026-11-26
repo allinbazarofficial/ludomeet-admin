@@ -43,6 +43,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .muted{color:var(--muted)}.av{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#eee;vertical-align:middle}
 .login{min-height:100vh;display:grid;place-items:center}.login .card{width:min(420px,92vw);text-align:center;padding:34px}
 .login img{width:84px;height:84px;border-radius:20px}.gbtn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:12px 22px;font-weight:600;margin-top:18px}
+.dlg{position:fixed;inset:0;background:#0006;display:flex;align-items:center;justify-content:center;z-index:9999}.dbox{background:#fff;border-radius:20px;padding:22px;max-width:420px;width:90%;box-shadow:0 10px 40px #0004}.dmsg{font-size:16px;line-height:1.5;white-space:pre-wrap}
 .modal{position:fixed;inset:0;background:#0005;display:none;place-items:center;z-index:30}.modal.open{display:grid}
 .modal .card{width:min(520px,94vw);max-height:90vh;overflow:auto}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#24323a;color:#fff;padding:12px 20px;border-radius:14px;display:none;z-index:40}
@@ -344,7 +345,13 @@ obs.observe(document.body,{childList:true,subtree:true,characterData:true});
 function setLang(l){LANG=l;try{localStorage.setItem("adm_lang",l)}catch(e){}document.documentElement.lang=l;_busy=true;trNode(document.body);_busy=false;
  document.querySelectorAll(".lang b").forEach(b=>b.classList.toggle("on",b.dataset.l===l))}
 document.querySelectorAll(".lang b").forEach(b=>b.onclick=()=>setLang(b.dataset.l));
-const _confirm=window.confirm.bind(window);window.confirm=m=>_confirm(T(m));
+// In-page dialogs (browser pop-ups are blocked in some browsers, which made actions silently do nothing).
+function dlg(msg,opt={}){return new Promise(res=>{const o=document.createElement("div");o.className="dlg";
+ o.innerHTML=`<div class="dbox"><div class="dmsg"></div>${opt.input?'<input class="inp" style="width:100%;margin-top:12px">':''}<div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-n>${T("বাতিল")}</button><button class="btn o" data-y>${T("ঠিক আছে")}</button></div></div>`;
+ o.querySelector(".dmsg").textContent=T(msg);const i=o.querySelector("input");if(i)i.value=opt.def??"";document.body.appendChild(o);(i||o.querySelector("[data-y]")).focus();
+ const done=v=>{o.remove();res(v)};o.querySelector("[data-n]").onclick=()=>done(opt.input?null:false);o.querySelector("[data-y]").onclick=()=>done(opt.input?i.value:true);
+ o.onkeydown=e=>{if(e.key==="Enter")o.querySelector("[data-y]").click();if(e.key==="Escape")o.querySelector("[data-n]").click()}})}
+const dlgp=(m,d="")=>dlg(m,{input:true,def:d});
 setLang(LANG);
 
 const NAV=[
@@ -445,7 +452,7 @@ async function userAction(uid,a){
   if(!(n>0)){toast("সঠিক পরিমাণ লিখুন");return}
   if(a==="coin-"&&n>(u.coins||0)){toast("এত কয়েন নেই");return}
   if(a==="dia-"&&n>(u.diamonds||0)){toast("এত ডায়মন্ড নেই");return}
-  if(!confirm(`নিশ্চিত? ${a} ${fmt(n)} → ${u.name}`))return;
+  if(!await dlg(`নিশ্চিত? ${a} ${fmt(n)} → ${u.name}`))return;
   const upd={"coin-":{coins:increment(-n)},"dia+":{diamonds:increment(n),lifetimeDiamonds:increment(n)},"dia-":{diamonds:increment(-n)}};
   await updateDoc(ref,{...(a==="coin+"?{coins:increment(n)}:upd[a]),updatedAt:serverTimestamp()});
   await log(a,shownId(u),{amount:n,why,name:u.name});toast("হয়ে গেছে ✓");closeM();refresh();
@@ -469,7 +476,7 @@ async function payroll(){
 }
 async function settle(id,paid,rows){
  const w=rows.find(r=>r.id===id).data();
- if(!confirm(paid?`$${Number(w.usd).toFixed(2)} পাঠিয়েছেন? Paid করবেন?`:`অর্ডার বাতিল করবেন? ${fmt(w.diamonds)} ডায়মন্ড ইউজারকে ফেরত যাবে।`))return;
+ if(!await dlg(paid?`$${Number(w.usd).toFixed(2)} পাঠিয়েছেন? Paid করবেন?`:`অর্ডার বাতিল করবেন? ${fmt(w.diamonds)} ডায়মন্ড ইউজারকে ফেরত যাবে।`))return;
  try{const b=writeBatch(db);
   b.update(doc(db,"withdrawals",id),{status:paid?"paid":"rejected",settledAt:serverTimestamp(),settledBy:auth.currentUser.email});
   b.update(doc(db,"users",w.uid),paid?{lockedDiamonds:increment(-w.diamonds)}:{lockedDiamonds:increment(-w.diamonds),diamonds:increment(w.diamonds)});
@@ -532,12 +539,12 @@ async function message(){
 async function setLevel(uid){
  const u=cache[uid];const n=Math.floor(Number($("#lvn").value||0));
  if(!(n>=1&&n<=200)){toast("১ থেকে ২০০-এর মধ্যে লেভেল লিখুন");return}
- if(!confirm(`${u.name}-এর লেভেল Lv ${lvl(u)} থেকে Lv ${n} করবেন?`))return;
+ if(!await dlg(`${u.name}-এর লেভেল Lv ${lvl(u)} থেকে Lv ${n} করবেন?`))return;
  try{const b=writeBatch(db);b.update(doc(db,"users",uid),{level:n,updatedAt:serverTimestamp()});syncProfile(b,uid,{level:n});await b.commit();
   await log("level-set",shownId(u),{from:lvl(u),to:n,name:u.name,why:$("#why")?.value||""});toast("হয়ে গেছে ✓");closeM();refresh()}catch(e){toast("ব্যর্থ: "+e.message)}}
 async function saveRoles(uid){
  const u=cache[uid];const roles=[...document.querySelectorAll("[data-role]")].filter(i=>i.checked).map(i=>i.dataset.role);
- if(!confirm(`${u.name}-এর পদ সেভ করবেন?`))return;
+ if(!await dlg(`${u.name}-এর পদ সেভ করবেন?`))return;
  try{const b=writeBatch(db);b.update(doc(db,"users",uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});syncProfile(b,uid,{roles});await b.commit();
   await log("roles",shownId(u),{from:u.roles||[],to:roles,name:u.name});toast("সেভ হয়েছে ✓");closeM();refresh()}catch(e){toast("ব্যর্থ: "+e.message)}}
 
@@ -586,7 +593,7 @@ function vipGive(v){
    const cur=await getDoc(doc(db,"ids",v));const cx=cur.data()||{};
    if(cx.uid&&cx.uid!==d.id){const o=await getDoc(doc(db,"users",cx.uid));if(o.exists()&&o.data().vipId===v&&vipOn(o.data())){toast("এই VIP আইডি এখন অন্য কেউ ব্যবহার করছে");return}}
    const until=addMonths(new Date(),m);
-   if(!confirm(`${u.name} (আসল ${ownId(u)}) কে ${v} দেবেন? মেয়াদ: ${day(until)}`))return;
+   if(!await dlg(`${u.name} (আসল ${ownId(u)}) কে ${v} দেবেন? মেয়াদ: ${day(until)}`))return;
    const b=writeBatch(db);
    if(vipOn(u)&&u.vipId!==v)b.set(doc(db,"ids",u.vipId),{type:"vip",uid:null,until:null},{merge:true});
    if(cx.uid&&cx.uid!==d.id){b.update(doc(db,"users",cx.uid),{vipId:"",vipUntil:null});syncProfile(b,cx.uid,{vipId:"",vipUntil:null})}
@@ -605,7 +612,7 @@ function vipExtend(o){
    await log("vip-extend",o.v,{name:o.u.name,months:m});toast("হয়ে গেছে ✓");closeM();vip()}catch(e){toast("ব্যর্থ: "+e.message)}};
 }
 async function vipRevoke(o){
- if(!confirm(`${o.v} ${o.u.name}-এর কাছ থেকে ফিরিয়ে নেবেন? তার আসল আইডি ${ownId(o.u)} আবার দেখাবে।`))return;
+ if(!await dlg(`${o.v} ${o.u.name}-এর কাছ থেকে ফিরিয়ে নেবেন? তার আসল আইডি ${ownId(o.u)} আবার দেখাবে।`))return;
  try{const b=writeBatch(db);b.update(doc(db,"users",o.x.uid),{vipId:"",vipUntil:null});syncProfile(b,o.x.uid,{vipId:"",vipUntil:null});b.set(doc(db,"ids",o.v),{uid:null,until:null},{merge:true});await b.commit();
   await log("vip-revoke",o.v,{name:o.u.name});toast("হয়ে গেছে ✓");vip()}catch(e){toast("ব্যর্থ: "+e.message)}
 }
@@ -646,17 +653,17 @@ async function userProfile(uid){
   document.querySelectorAll("[data-big]").forEach(im=>im.onclick=()=>{const p=photos[+im.dataset.big];lightbox("data:image/jpeg;base64,"+(p.data||p.thumb))});
   const savePhotos=async(keep,removed)=>{const b=writeBatch(db);let thumb=null;if(keep.length){const f=photos.find(p=>p.id===keep[0]);thumb=f?.thumb||null}
    const fields={photos:keep,photoData:thumb};b.update(doc(db,"users",uid),fields);syncProfile(b,uid,fields);removed.forEach(id=>b.delete(doc(db,"profiles",uid,"photos",id)));await b.commit()};
-  document.querySelectorAll("[data-delp]").forEach(bt=>bt.onclick=async()=>{if(!confirm("এই ছবিটা মুছবেন?"))return;const id=bt.dataset.delp;
+  document.querySelectorAll("[data-delp]").forEach(bt=>bt.onclick=async()=>{if(!await dlg("এই ছবিটা মুছবেন?"))return;const id=bt.dataset.delp;
    try{await savePhotos(ids.filter(x=>x!==id),[id]);await log("photo-remove",shownId(u),{name:u.name});toast("হয়ে গেছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}});
-  if($("#delall"))$("#delall").onclick=async()=>{if(!confirm("এই ইউজারের সব ছবি মুছবেন? লোগো তার প্রোফাইল ছবি হবে।"))return;
+  if($("#delall"))$("#delall").onclick=async()=>{if(!await dlg("এই ইউজারের সব ছবি মুছবেন? লোগো তার প্রোফাইল ছবি হবে।"))return;
    try{await savePhotos([],ids);await log("photo-remove-all",shownId(u),{name:u.name,count:ids.length});toast("হয়ে গেছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}};
   const setName=async(name,warning)=>{const b=writeBatch(db);const f={name,nameChangedAt:serverTimestamp(),updatedAt:serverTimestamp()};b.update(doc(db,"users",uid),f);syncProfile(b,uid,{name});
    b.set(doc(collection(db,"users",uid,"nameChanges")),{from:u.name||"",to:name,fee:0,by:"admin",at:serverTimestamp()});
    if(warning)b.set(doc(collection(db,"users",uid,"inbox")),{title:"Warning",body:"Your name was changed by LudoMeet because it broke our rules. Changing it again within 30 days costs 10,000 coins.",kind:"warning",at:serverTimestamp()});
    await b.commit();await log(warning?"name-warning":"name-set",shownId(u),{from:u.name,to:name})};
-  $("#warn").onclick=async()=>{if(!confirm(`${u.name}-এর নাম "Warning" করবেন? তাকে সিস্টেম মেসেজে জানানো হবে।`))return;try{await setName("Warning",true);toast("হয়ে গেছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}};
+  $("#warn").onclick=async()=>{if(!await dlg(`${u.name}-এর নাম "Warning" করবেন? তাকে সিস্টেম মেসেজে জানানো হবে।`))return;try{await setName("Warning",true);toast("হয়ে গেছে ✓");userProfile(uid)}catch(e){toast("ব্যর্থ: "+e.message)}};
   $("#psv").onclick=async()=>{const name=$("#pname").value.trim(),bio=$("#pbio").value.trim(),g=$("#pg").value,c=$("#pc").value.trim().toUpperCase(),bdv=$("#pbd").value;
-   if(!name){toast("নাম লিখুন");return}if(!confirm("পরিবর্তন সেভ করবেন?"))return;
+   if(!name){toast("নাম লিখুন");return}if(!await dlg("পরিবর্তন সেভ করবেন?"))return;
    try{if(name!==u.name)await setName(name,false);
     const f={bio,gender:g,country:c,birthDate:bdv?Timestamp.fromDate(new Date(bdv+"T00:00:00")):null};
     const b=writeBatch(db);b.update(doc(db,"users",uid),{...f,updatedAt:serverTimestamp()});syncProfile(b,uid,f);await b.commit();
@@ -676,7 +683,7 @@ async function apps(){
   document.querySelectorAll("[data-proof]").forEach(i=>i.onclick=()=>lightbox(i.src));
   document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
   const decide=async(id,ok)=>{const a=rows.find(r=>r.id===id).data();
-   if(!confirm(ok?`${a.name}-কে "${a.roleName}" পদ দেবেন?`:`${a.name}-এর আবেদন বাতিল করবেন?`))return;
+   if(!await dlg(ok?`${a.name}-কে "${a.roleName}" পদ দেবেন?`:`${a.name}-এর আবেদন বাতিল করবেন?`))return;
    try{const b=writeBatch(db);b.update(doc(db,"applications",id),{status:ok?"approved":"rejected",decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email});
     if(ok){const us=await getDoc(doc(db,"users",a.uid));const r=new Set(us.data()?.roles||[]);r.add(a.role);const roles=[...r];
      b.update(doc(db,"users",a.uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles})}
@@ -714,13 +721,13 @@ async function depset(){
   <div class="card" style="max-width:640px"><div class="ttl">উত্তোলন ও ডিপোজিট</div><div class="muted">বন্ধ থাকলে অ্যাপে ডায়মন্ড উত্তোলন (Payroll) আর পার্টনার ডিপোজিট দেখাবে না। ডায়মন্ড → কয়েন এক্সচেঞ্জ সবসময় চালু থাকে।</div>
   <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="mf" style="width:22px;height:22px"> উত্তোলন ও ডিপোজিট চালু</label></div>`);
  try{const a=(await getDoc(doc(db,"config","app"))).data()||{};$("#mf").checked=a.moneyFeatures===true}catch(e){}
- $("#mf").onchange=async e=>{const on=e.target.checked;if(!confirm(on?"অ্যাপে উত্তোলন ও ডিপোজিট চালু করবেন?":"অ্যাপে উত্তোলন ও ডিপোজিট বন্ধ করবেন?")){e.target.checked=!on;return}
+ $("#mf").onchange=async e=>{const on=e.target.checked;if(!await dlg(on?"অ্যাপে উত্তোলন ও ডিপোজিট চালু করবেন?":"অ্যাপে উত্তোলন ও ডিপোজিট বন্ধ করবেন?")){e.target.checked=!on;return}
   try{await setDoc(doc(db,"config","app"),{moneyFeatures:on},{merge:true});await log("money-features","config",{on});toast("সেভ হয়েছে ✓")}catch(err){toast("ব্যর্থ: "+err.message);e.target.checked=!on}};
  const D={usdtAddress:"0xd94cd3f3c29875f89bbe291b45ceeac5f889348e",usdtNetwork:"BSC (BNB Smart Chain) BEP20",binanceId:"978923854",binanceName:"LudoMeet"};
  try{const s=(await getDoc(doc(db,"config","deposit"))).data()||{};Object.assign(D,Object.fromEntries(Object.entries(s).filter(([k,v])=>typeof v==="string"&&v)))}catch(e){}
  $("#dsa").value=D.usdtAddress;$("#dsn").value=D.usdtNetwork;$("#dsb").value=D.binanceId;$("#dsm").value=D.binanceName;
  $("#dss").onclick=async()=>{const f={usdtAddress:$("#dsa").value.trim(),usdtNetwork:$("#dsn").value.trim(),binanceId:$("#dsb").value.trim(),binanceName:$("#dsm").value.trim()};
-  if(!f.usdtAddress||!f.usdtNetwork||!f.binanceId){toast("সব ঘর পূরণ করুন");return}if(!confirm("ডিপোজিট তথ্য বদলাবেন? অ্যাপে সাথে সাথে নতুন তথ্য দেখাবে।"))return;
+  if(!f.usdtAddress||!f.usdtNetwork||!f.binanceId){toast("সব ঘর পূরণ করুন");return}if(!await dlg("ডিপোজিট তথ্য বদলাবেন? অ্যাপে সাথে সাথে নতুন তথ্য দেখাবে।"))return;
   try{await setDoc(doc(db,"config","deposit"),{...f,updatedAt:serverTimestamp()},{merge:true});await log("deposit-settings","config",f);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
 }
 
@@ -742,8 +749,8 @@ async function deposits(){
   document.querySelectorAll("[data-proof]").forEach(i=>i.onclick=()=>lightbox(i.src));
   document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
   const decide=async(id,ok)=>{const a=rows.find(r=>r.id===id).data();let reason="";
-   if(ok){if(!confirm(`${a.name}-এর $${fmt(a.amount)} ডিপোজিট অনুমোদন করবেন?\nসে "${a.roleName}" পদ আর ${fmt(a.coins)} কয়েন পাবে।`))return}
-   else{reason=prompt("বাতিলের কারণ লিখুন (ইউজার দেখবে):","Payment not found");if(reason===null)return}
+   if(ok){if(!await dlg(`${a.name}-এর $${fmt(a.amount)} ডিপোজিট অনুমোদন করবেন?\nসে "${a.roleName}" পদ আর ${fmt(a.coins)} কয়েন পাবে।`))return}
+   else{reason=await dlgp("বাতিলের কারণ লিখুন (ইউজার দেখবে):","Payment not found");if(reason===null)return}
    try{const b=writeBatch(db);b.update(doc(db,"deposits",id),{status:ok?"approved":"rejected",decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email,...(ok?{}:{reason})});
     if(ok){const us=await getDoc(doc(db,"users",a.uid));const r=new Set(us.data()?.roles||[]);r.add(a.role);const roles=[...r];
      b.update(doc(db,"users",a.uid),{roles,coins:increment(Number(a.coins)||0),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles})}
@@ -804,7 +811,7 @@ async function reports(){
   document.querySelectorAll("[data-zoomr]").forEach(i=>i.onclick=()=>lightbox(i.src));
   document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
   document.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{if(b.dataset.ch)openChat(b.dataset.ch,b.dataset.who);else toast("চ্যাট নেই")});
-  const decide=async(id,st)=>{const r=rows.find(x=>x.id===id).data();const note=prompt(st==="resolved"?"কী ব্যবস্থা নিলেন? (ঐচ্ছিক)":"বাতিলের কারণ (ঐচ্ছিক)","");if(note===null)return;
+  const decide=async(id,st)=>{const r=rows.find(x=>x.id===id).data();const note=await dlgp(st==="resolved"?"কী ব্যবস্থা নিলেন? (ঐচ্ছিক)":"বাতিলের কারণ (ঐচ্ছিক)","");if(note===null)return;
    try{const b=writeBatch(db);b.update(doc(db,"reports",id),{status:st,note,decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email});
     b.set(doc(collection(db,"users",r.from,"inbox")),{title:"Report reviewed",body:st==="resolved"?`Thank you. We reviewed your report about ${r.targetName} (ID ${r.targetId}) and took action.`:`We reviewed your report about ${r.targetName} (ID ${r.targetId}) and found no rule break.`,kind:"report",at:serverTimestamp()});
     await b.commit();await log("report-"+st,r.targetId,{reason:r.reason,note});toast("হয়ে গেছে ✓");reports()}catch(e){toast("ব্যর্থ: "+e.message)}};
@@ -831,7 +838,7 @@ async function games(){
   const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split(",").map(x=>parseInt(x.trim())).filter(x=>x>0)};
   if(v.split4[0]+v.split4[1]!==100)return toast("৪ জনের ভাগ মিলে ১০০ হতে হবে");
   if(!(v.feePct>=0&&v.feePct<=30))return toast("ফি ০–৩০% এর মধ্যে দিন");
-  if(!confirm("গেম সেটিং সেভ করবেন?"))return;
+  if(!await dlg("গেম সেটিং সেভ করবেন?"))return;
   try{await setDoc(doc(db,"config","games"),v,{merge:true});await log("game-settings","config",v);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
  const nf=x=>(x||0).toLocaleString("en-US");
  try{const s=await getDocs(query(collection(db,"gameStats"),orderBy("day","desc"),limit(31)));
