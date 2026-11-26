@@ -193,8 +193,8 @@ const handlers = {
     if (!r || r.kind !== 'private' || r.status !== 'waiting') throw Object.assign(new Error('room'), { code: 'NO_ROOM' });
     if (r.seats.length >= r.size) throw Object.assign(new Error('full'), { code: 'ROOM_FULL' });
     await seat(r, uid);
-    broadcast(r, roomInfo(r));
     if (r.seats.length === r.size) startGame(r);
+    else broadcast(r, roomInfo(r));
   },
 
   async invite(uid, m) {
