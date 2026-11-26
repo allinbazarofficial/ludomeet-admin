@@ -230,6 +230,7 @@ function forfeit(r, uid, reason) {
     if (r.teams) r.seats.filter(x => r.game.players.find(p => p.id === x.uid).team === r.game.players.find(p => p.id === uid).team).forEach(x => r.game.eliminate(x.uid));
     else r.game.eliminate(uid);
   }
+  if (r.mics && r.mics.delete(uid)) broadcast(r, { t: 'mic', uid, on: false, active: [...r.mics] });
   broadcast(r, { t: 'eliminated', uid, reason, state: r.game.state() });
   send(uid, { t: 'left', code: r.code });
   nextTurn(r);
@@ -310,7 +311,17 @@ function queueUp(uid, stake, ms = QUEUE_MS) {
 }
 
 const handlers = {
-  async config(uid) { const c = await store.config(); send(uid, { t: 'config', feePct: c.feePct, stakes: c.stakes, split4: c.split4, botMult: c.botMult, enabled: c.enabled }); },
+  async config(uid) { const c = await store.config(); send(uid, { t: 'config', feePct: c.feePct, stakes: c.stakes, split4: c.split4, botMult: c.botMult, enabled: c.enabled, giftPct: c.giftPct, voiceIdleSec: c.voiceIdleSec }); },
+
+  // My mic on/off. Everyone at the table learns whose mic is on; phones join
+  // the voice channel only while at least one mic is on.
+  async mic(uid, m) {
+    const r = rooms.get(userRoom.get(uid));
+    if (!r || r.status !== 'playing' || r.kind === 'bot') return;
+    r.mics = r.mics || new Set();
+    if (m.on) r.mics.add(uid); else r.mics.delete(uid);
+    broadcast(r, { t: 'mic', uid, on: !!m.on, active: [...r.mics] });
+  },
 
   // Private room: creator picks stake, 2/3/4 seats, or 2 vs 2 teams. No coins taken yet.
   async create(uid, m) {
@@ -507,6 +518,7 @@ function onConnection(ws) {
         s.goneAt = Date.now();
         s.grace = setTimeout(() => forfeit(r, uid, 'timeout'), GRACE_MS);
         broadcast(r, { t: 'away', uid, ms: GRACE_MS });
+        if (r.mics && r.mics.delete(uid)) broadcast(r, { t: 'mic', uid, on: false, active: [...r.mics] });
       }
     } else if (r && r.status === 'waiting') {
       // Switching to WhatsApp to share the link must not close the room: wait a few minutes.
@@ -554,7 +566,7 @@ async function main() {
     }
     let searching = 0; for (const q of queues.values()) searching += q.length;
     store.live({ online: clients.size, waitingRooms: waiting, playing, playersInGames: inGames, searching, byMode }).catch(() => {});
-  }, 15000);
+  }, +process.env.LIVE_MS || 60000);
   wss.on('connection', onConnection);
   const ping = setInterval(() => wss.clients.forEach(w => { if (w.alive === false) return w.terminate(); w.alive = false; w.ping(); }), 30000);
   wss.on('connection', w => { w.alive = true; w.on('pong', () => (w.alive = true)); });

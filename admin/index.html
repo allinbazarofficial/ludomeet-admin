@@ -106,7 +106,7 @@ const BD_MS=6*3600000;
 /* Start of the Bangladesh day (12 midnight BD) that is `back` days ago. */
 const bdDayStart=(back=0)=>{const b=new Date(Date.now()+BD_MS);return new Date(Date.UTC(b.getUTCFullYear(),b.getUTCMonth(),b.getUTCDate()-back)-BD_MS)};
 const ago=v=>{const d=v?.toDate?v.toDate():null;if(!d)return"";const m=Math.floor((Date.now()-d.getTime())/60000);return m<60?`${m} মিনিট আগে`:(m<1440?`${Math.floor(m/60)} ঘণ্টা ${m%60} মিনিট আগে`:`${Math.floor(m/1440)} দিন আগে`)};
-const VIPS=["111111", "222222", "333333", "444444", "555555", "666666", "777777", "888888", "999999", "123456", "234567", "345678", "456789", "654321", "765432", "876543", "987654", "100000", "200000", "300000", "400000", "500000", "600000", "700000", "800000", "900000", "121212", "131313", "151515", "181818", "191919", "202020", "232323", "525252", "585858", "686868", "520520", "521521", "168168", "888999", "666888", "999888", "100100", "200200", "500500", "123123", "112233", "778899", "808080", "909090"];
+const VIPS=["111111", "222222", "333333", "444444", "555555", "666666", "777777", "888888", "999999", "123456", "234567", "345678", "456789", "654321", "765432", "876543", "987654", "100000", "200000", "300000", "400000", "500000", "600000", "700000", "800000", "900000", "121212", "131313", "151515", "181818", "191919", "202020", "232323", "525252", "585858", "686868", "520520", "521521", "168168", "888999", "666888", "999888", "100100", "200200", "500500", "123123", "112233", "778899", "808080", "909090", "111", "222", "333", "444", "555", "666", "777", "888", "999", "123", "234", "345", "456", "567", "678", "789", "321", "432", "543", "654", "765", "876", "987", "100", "200", "300", "400", "500", "600", "700", "800", "900", "520", "521", "168", "101", "202", "303", "404", "505", "606", "707", "808", "909", "121", "131", "141", "151", "161", "171", "181", "191", "212", "313", "414", "515", "616", "717", "818", "919", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999", "1234", "2345", "3456", "4567", "5678", "6789", "4321", "5432", "6543", "7654", "8765", "9876", "1314", "5200", "5201", "5211", "1688", "6688", "8866", "8899", "9988", "6699", "9966", "1000", "2000", "3000", "4000", "5000", "6000", "7000", "8000", "9000", "1001", "2002", "3003", "4004", "5005", "6006", "7007", "8008", "9009", "1212", "1313", "1414", "1515", "1616", "1717", "1818", "1919", "2121", "2323", "3434", "4545", "5656", "6767", "7878", "8989", "1122", "2233", "3344", "4455", "5566", "6677", "7788", "9900", "1100", "2200", "3300", "4400", "5500", "6600", "7700", "8800", "2024", "2025", "2026", "2027", "2028", "1999", "1990", "1110", "2220", "3330", "5550", "8880", "9990", "7171", "9191", "8181", "11111", "22222", "33333", "44444", "55555", "66666", "77777", "88888", "99999", "12345", "23456", "34567", "45678", "56789", "54321", "65432", "76543", "87654", "98765", "10000", "20000", "30000", "40000", "50000", "60000", "70000", "80000", "90000", "52000", "52013", "13140", "16888", "66888", "88866", "88999", "99888", "66699", "12121", "13131", "14141", "15151", "16161", "17171", "18181", "19191", "21212", "11122", "22233", "33344", "44455", "55566", "66677", "77788", "88899", "10101", "20202", "30303", "40404", "50505", "60606", "70707", "80808", "90909", "11100", "22200", "33300", "55500", "88800", "99900", "12321", "23432", "34543", "45654", "56765", "67876", "78987", "11211", "22322", "88188", "99199", "66166", "111000", "111222", "111333", "111444", "111555", "111666", "111777", "111888", "111999", "222000", "222111", "222333", "222444", "222555", "222666", "222777", "222888", "222999", "333000", "333111", "333222", "333444", "333555", "333666", "333777", "333888", "333999", "444000", "444111", "444222", "444333", "444555", "444666", "444777", "444888", "444999", "555000", "555111", "555222", "555333", "555444", "555666", "555777", "555888", "555999", "666000", "666111", "666222", "666333", "666444", "666555", "666777", "666999", "777000", "777111", "777222", "777333", "777444", "777555", "777666", "777888", "777999", "888000", "888111", "888222", "888333", "888444", "888555", "888666", "888777", "999000", "999111", "999222", "999333", "999444", "999555", "999666", "999777", "101010", "141414", "161616", "171717", "212121", "242424", "252525", "262626", "272727", "282828", "292929", "303030", "313131", "323232", "343434", "353535", "363636", "373737", "383838", "393939", "404040", "414141", "424242", "434343", "454545", "464646", "474747", "484848", "494949", "505050", "515151", "535353", "545454", "565656", "575757", "595959", "606060", "616161", "626262", "636363", "646464", "656565", "676767", "696969", "707070", "717171", "727272", "737373", "747474", "757575", "767676", "787878", "797979", "818181", "828282", "838383", "848484", "858585", "868686", "878787", "898989", "919191", "929292", "939393", "949494", "959595", "969696", "979797", "989898", "110000", "220000", "300300", "330000", "400400", "440000", "550000", "600600", "660000", "700700", "770000", "800800", "880000", "900900", "990000", "110011", "112211", "113311", "114411", "115511", "116611", "117711", "118811", "119911", "220022", "221122", "223322", "224422", "225522", "226622", "227722", "228822", "229922", "330033", "331133", "332233", "334433", "335533", "336633", "337733", "338833", "339933", "440044", "441144", "442244", "443344", "445544", "446644", "447744", "448844", "449944", "550055", "551155", "552255", "553355", "554455", "556655", "557755", "558855", "559955", "660066", "661166", "662266", "663366"];
 const ROLES=[["bd","BD"],["admin","Admin"],["superAdmin","Super Admin"],["primarySeller","Primary Seller"],["normalSeller","Normal Seller"],["beginnerSeller","Beginner Seller"],["coinSeller","Coin Seller"],["payroll","Payroll / Portal"],["seniorSeller","Senior Coin Seller"],["superSeller","Super Seller"],["management","Management"]];
 const vipOn=u=>!!(u&&u.vipId&&u.vipUntil&&u.vipUntil.toMillis()>Date.now());
 const ownId=u=>u?.userId||u?.playerId||"—";
@@ -358,8 +358,8 @@ setLang(LANG);
 const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
  ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
- ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["games","🎲","অনলাইন গেম আয়"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
- ["APP DATA",[["live","🟢","লাইভ গেম"],["gifts","🎁","গিফট"],["giftinc","💝","গিফট আয়"],["rooms","🎙️","ভয়েস রুম","শীঘ্রই"]]],
+ ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["transfer","♻️","অ্যাকাউন্ট ফেরত"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["games","🎲","অনলাইন গেম আয়"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
+ ["APP DATA",[["live","🟢","লাইভ গেম"],["crashes","🐞","অ্যাপ এরর"],["gifts","🎁","গিফট"],["giftinc","💝","গিফট আয়"],["rooms","🎙️","ভয়েস রুম","শীঘ্রই"]]],
 ];
 let current="dash";
 function drawNav(f=""){const q=f.toLowerCase();$("#navlist").innerHTML=NAV.map(([s,items])=>{const it=items.filter(i=>!q||i[2].toLowerCase().includes(q)||T(i[2]).toLowerCase().includes(q));if(!it.length)return"";return `<div class="sec">${s}</div>`+it.map(([k,ic,l,tag])=>`<button class="nav ${k===current?"act":""}" data-k="${k}">${ic} ${l}${tag?`<span class="tag">${tag}</span>`:""}</button>`).join("")}).join("")}
@@ -434,7 +434,7 @@ async function manageUser(uid){
  <label class="f">পরিমাণ</label><input class="inp" id="amt" inputmode="numeric" data-num placeholder="যেমন 10,000" style="width:100%">
  <label class="f">কারণ (লগে থাকবে)</label><input class="inp" id="why" placeholder="যেমন: বোনাস, ভুল সংশোধন" style="width:100%">
  <div class="row" style="margin-top:14px"><button class="btn g" data-a="coin+">+ কয়েন দিন</button><button class="btn r" data-a="coin-">− কয়েন কাটুন</button><button class="btn g" data-a="dia+">+ ডায়মন্ড দিন</button><button class="btn r" data-a="dia-">− ডায়মন্ড কাটুন</button></div>
- <div class="row" style="margin-top:14px"><button class="btn" data-a="ban">${u.banned?"আনব্যান করুন":"ব্যান করুন"}</button><button class="btn" data-a="seller">${u.coinSeller?"সেলার বাতিল":"কয়েন সেলার বানান"}</button><button class="btn" id="mclose">বন্ধ</button></div>
+ <div class="row" style="margin-top:14px"><button class="btn" data-a="ban">${u.banned?"আনব্যান করুন":"ব্যান করুন"}</button><button class="btn" data-a="seller">${u.coinSeller?"সেলার বাতিল":"কয়েন সেলার বানান"}</button><button class="btn o" id="chid">🆔 আইডি বদলান</button><button class="btn" id="mclose">বন্ধ</button></div>
  <label class="f" style="margin-top:16px">পদ (একাধিক বাছাই করা যায়)</label><div class="row">${ROLES.map(([k,l])=>`<label class="chip" style="cursor:pointer"><input type="checkbox" data-role="${k}" ${(u.roles||[]).includes(k)||(k==="coinSeller"&&u.coinSeller)?"checked":""}> ${l}</label>`).join("")}</div>
  <div class="row" style="margin-top:10px"><button class="btn o" id="rsave">পদ সেভ করুন</button></div>
  <label class="f" style="margin-top:16px">লেভেল (এখন Lv ${lvl(u)} · লেভেল কয়েন ${fmt(u.levelCoins)})</label>
@@ -444,6 +444,7 @@ async function manageUser(uid){
  $("#fullp").onclick=()=>{closeM();userProfile(uid)};
  $("#clog").onclick=()=>{closeM();coinLog(uid)};
  $("#dlog").onclick=()=>{closeM();coinLog(uid,true)};
+ $("#chid").onclick=()=>changeId(uid);
  $("#mclose").onclick=closeM;
  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(uid,b.dataset.a));
 }
@@ -575,27 +576,53 @@ async function roles(){
 
 // ---------- VIP IDs ----------
 async function vip(){
- view(`<div class="card"><div class="ttl">VIP IDS</div><div class="muted">৫০টি বিশেষ আইডি। সাধারণ ইউজার এগুলো পায় না। মেয়াদ থাকা পর্যন্ত ইউজারের সব জায়গায় VIP আইডি দেখাবে, মেয়াদ শেষে আসল আইডি ফিরে আসবে।</div>
- <div class="chips" style="margin-top:12px" id="vf">${[["all","সব"],["free","খালি"],["used","ব্যবহারে"]].map(([k,l],i)=>`<button class="chip ${i===0?"act":""}" data-f="${k}">${l}</button>`).join("")}</div></div>
- <div class="card"><div class="tw" id="vlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ view(`<div class="card"><div class="ttl">VIP IDS</div><div class="muted">বিক্রির জন্য বিশেষ আইডি (৩–৬ সংখ্যা)। সাধারণ ইউজার এগুলো পায় না। মেয়াদ থাকা পর্যন্ত ইউজারের সব জায়গায় VIP আইডি দামি ব্যাজে দেখাবে, মেয়াদ শেষে আসল আইডি ফিরে আসবে।</div>
+  <div class="row" style="margin-top:12px"><input class="inp" id="vs" inputmode="numeric" placeholder="যেকোনো আইডি নম্বর লিখে খুঁজুন (যেমন 888)" style="flex:1"><button class="btn o" id="vsgo">খুঁজুন</button></div>
+  <div id="vsres" style="margin-top:10px"></div>
+  <div class="chips" style="margin-top:12px" id="vf">${[["all","সব"],["free","খালি"],["used","ব্যবহারে"],["3","৩ সংখ্যা"],["4","৪ সংখ্যা"],["5","৫ সংখ্যা"],["6","৬ সংখ্যা"]].map(([k,l],i)=>`<button class="chip ${i===0?"act":""}" data-f="${k}">${l}</button>`).join("")}</div></div>
+  <div class="card"><div class="tw" id="vlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ $("#vsgo").onclick=()=>vipSearch($("#vs").value.replace(/[^0-9]/g,""));$("#vs").onkeydown=e=>{if(e.key==="Enter")$("#vsgo").click()};
  let rows=[];
  try{
   const s=await getDocs(query(collection(db,"ids"),where("type","==","vip")));
   const have=new Map(s.docs.map(d=>[d.id,d.data()]));
+  // Add any missing VIP numbers from the list, but never take a number a normal user already has.
   const miss=VIPS.filter(v=>!have.has(v));
-  if(miss.length){const b=writeBatch(db);miss.forEach(v=>{b.set(doc(db,"ids",v),{type:"vip",uid:null,until:null,at:serverTimestamp()});have.set(v,{type:"vip",uid:null})});await b.commit()}
+  if(miss.length){
+   const ex=await Promise.all(miss.map(v=>getDoc(doc(db,"ids",v)).then(d=>d.exists()).catch(()=>true)));
+   const add=miss.filter((v,i)=>!ex[i]);
+   for(let k=0;k<add.length;k+=400){const b=writeBatch(db);add.slice(k,k+400).forEach(v=>{b.set(doc(db,"ids",v),{type:"vip",uid:null,until:null,at:serverTimestamp()});have.set(v,{type:"vip",uid:null})});await b.commit()}
+  }
   const uids=[...new Set([...have.values()].map(x=>x.uid).filter(Boolean))];
   const users={};await Promise.all(uids.map(async u=>{const d=await getDoc(doc(db,"users",u));if(d.exists())users[u]=d.data()}));
-  rows=VIPS.map(v=>{const x=have.get(v)||{};const u=x.uid?users[x.uid]:null;const active=!!(u&&u.vipId===v&&vipOn(u));return {v,x,u,active}});
+  rows=[...have.keys()].sort((a,b)=>a.length-b.length||a.localeCompare(b)).map(v=>{const x=have.get(v)||{};const u=x.uid?users[x.uid]:null;const active=!!(u&&u.vipId===v&&vipOn(u));return {v,x,u,active}});
  }catch(e){$("#vlist").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
- const draw=f=>{const r=rows.filter(o=>f==="all"||(f==="free"?!o.active:o.active));
-  $("#vlist").innerHTML=`<table><tr><th>VIP আইডি</th><th>অবস্থা</th><th>ইউজার</th><th>মেয়াদ শেষ</th><th></th></tr>${r.map(o=>`<tr><td><b style="font-size:16px">${o.v}</b></td><td>${o.active?'<span class="badge paid">ব্যবহারে</span>':'<span class="badge">খালি</span>'}</td><td>${o.active?`<b>${esc(o.u.name)}</b><div class="muted" style="font-size:12px">আসল ${esc(ownId(o.u))} · ${esc(o.u.email)}</div>`:"—"}</td><td>${o.active?day(o.u.vipUntil):"—"}</td><td>${o.active?`<button class="btn sm g" data-ext="${o.v}">মেয়াদ বাড়ান</button> <button class="btn sm r" data-rev="${o.v}">ফিরিয়ে নিন</button>`:`<button class="btn sm o" data-give="${o.v}">দিন</button>`}</td></tr>`).join("")}</table>`;
+ const draw=f=>{const r=rows.filter(o=>f==="all"||(f==="free"?!o.active:f==="used"?o.active:o.v.length===+f));
+  $("#vlist").innerHTML=`<div class="muted" style="margin-bottom:8px">মোট ${fmt(rows.length)} · ব্যবহারে ${fmt(rows.filter(o=>o.active).length)} · দেখাচ্ছে ${fmt(r.length)}</div><table><tr><th>VIP আইডি</th><th>অবস্থা</th><th>ইউজার</th><th>মেয়াদ শেষ</th><th></th></tr>${r.map(o=>`<tr><td><b style="font-size:16px">${o.v}</b> <span class="muted" style="font-size:11px">${o.v.length} সংখ্যা</span></td><td>${o.active?'<span class="badge paid">ব্যবহারে</span>':'<span class="badge">খালি</span>'}</td><td>${o.active?`<b>${esc(o.u.name)}</b><div class="muted" style="font-size:12px">আসল ${esc(ownId(o.u))} · ${esc(o.u.email)}</div>`:"—"}</td><td>${o.active?day(o.u.vipUntil):"—"}</td><td>${o.active?`<button class="btn sm g" data-ext="${o.v}">মেয়াদ বাড়ান</button> <button class="btn sm r" data-rev="${o.v}">ফিরিয়ে নিন</button>`:`<button class="btn sm o" data-give="${o.v}">দিন</button>`}</td></tr>`).join("")}</table>`;
   document.querySelectorAll("[data-give]").forEach(b=>b.onclick=()=>vipGive(b.dataset.give,rows));
   document.querySelectorAll("[data-ext]").forEach(b=>b.onclick=()=>vipExtend(rows.find(o=>o.v===b.dataset.ext)));
   document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>vipRevoke(rows.find(o=>o.v===b.dataset.rev)));
  };
  document.querySelectorAll("#vf [data-f]").forEach(b=>b.onclick=()=>{document.querySelectorAll("#vf .chip").forEach(c=>c.classList.remove("act"));b.classList.add("act");draw(b.dataset.f)});
  draw("all");
+}
+// Search any number: show who has it, or create it as a new VIP ID.
+async function vipSearch(v){
+ const box=$("#vsres");
+ if(!/^[1-9][0-9]{2,5}$/.test(v)){box.innerHTML=`<div class="muted">৩ থেকে ৬ সংখ্যার নম্বর লিখুন (০ দিয়ে শুরু নয়)।</div>`;return}
+ box.innerHTML=`<div class="muted">খোঁজা হচ্ছে…</div>`;
+ try{const d=await getDoc(doc(db,"ids",v));const x=d.data();
+  if(!d.exists()){box.innerHTML=`<div class="stat" style="display:flex;gap:12px;align-items:center;justify-content:space-between"><div><b style="font-size:20px">${v}</b><div class="muted">এই নম্বর এখনো কারো নেই।</div></div><button class="btn g" id="vcr">➕ VIP আইডি হিসেবে তৈরি করুন</button></div>`;
+   $("#vcr").onclick=async()=>{if(!await dlg(`${v} নম্বরটি নতুন VIP আইডি হিসেবে তৈরি করবেন?`))return;
+    try{const again=await getDoc(doc(db,"ids",v));if(again.exists())return toast("এই নম্বর এইমাত্র কেউ নিয়েছে");
+     await setDoc(doc(db,"ids",v),{type:"vip",uid:null,until:null,custom:true,at:serverTimestamp()});await log("vip-create",v,{});toast("তৈরি হয়েছে ✓");vip().then(()=>vipGive(v))}catch(e){toast("ব্যর্থ: "+e.message)}};return}
+  if(x.type!=="vip"){const u=x.uid?(await getDoc(doc(db,"users",x.uid))).data():null;
+   box.innerHTML=`<div class="stat"><b style="font-size:20px">${v}</b> <span class="badge">সাধারণ আইডি</span><div class="muted" style="margin-top:4px">এটা ${u?`<b>${esc(u.name)}</b> (${esc(u.email||"")})`:"একজন ইউজারের"} নিজের আইডি। VIP হিসেবে দেওয়া যাবে না।</div>${u?`<button class="btn sm o" style="margin-top:8px" id="vsu">ইউজার ম্যানেজ</button>`:""}</div>`;
+   if(u)$("#vsu").onclick=()=>manageUser(x.uid);return}
+  const u=x.uid?(await getDoc(doc(db,"users",x.uid))).data():null;const active=!!(u&&u.vipId===v&&vipOn(u));
+  box.innerHTML=`<div class="stat" style="display:flex;gap:12px;align-items:center;justify-content:space-between"><div><b style="font-size:20px">${v}</b> <span class="badge ${active?"paid":""}">${active?"ব্যবহারে":"খালি"}</span>${active?`<div class="muted">${esc(u.name)} · আসল ${esc(ownId(u))} · মেয়াদ ${day(u.vipUntil)}</div>`:""}</div>${active?"":`<button class="btn o" id="vgv">দিন</button>`}</div>`;
+  if(!active)$("#vgv").onclick=()=>vipGive(v);
+ }catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 const durPick=()=>`<label class="f">মেয়াদ</label><div class="chips" id="dur">${DUR.map(([k,l],i)=>`<button class="chip ${i===0?"act":""}" data-m="${DUR[i][2]}">${l}</button>`).join("")}</div>`;
 const bindDur=()=>{let m=3;document.querySelectorAll("#dur .chip").forEach(b=>b.onclick=()=>{document.querySelectorAll("#dur .chip").forEach(c=>c.classList.remove("act"));b.classList.add("act");m=+b.dataset.m});return()=>m};
@@ -846,13 +873,17 @@ async function games(){
   <label class="f">৪ জনের খেলায় ভাগ (১ম % , ২য় %)</label><div style="display:flex;gap:8px"><input class="inp" id="gs1" type="number"><input class="inp" id="gs2" type="number"></div>
   <label class="f">কম্পিউটারের সাথে জিতলে গুণ (Easy / Normal / Hard)</label><div style="display:flex;gap:8px"><input class="inp" id="gbe" type="number" step="0.1"><input class="inp" id="gbn" type="number" step="0.1"><input class="inp" id="gbh" type="number" step="0.1"></div>
   <label class="f">বাজির টেবিল ( | দিয়ে আলাদা করুন)</label><input class="inp" id="gst" style="width:100%">
+  <label class="f">চুপ থাকলে মাইক বন্ধের সময় (সেকেন্ড)</label><input class="inp" id="gvi" type="number" min="10" max="600" style="width:100%">
+  <label class="f">গিফটে প্রাপক পাবে (% ডায়মন্ড)</label><input class="inp" id="ggp" type="number" min="0" max="100" style="width:100%">
   <button class="btn o" id="gsv" style="margin-top:14px">সেভ করুন</button></div>`);
- const D={enabled:true,feePct:10,split4:[70,30],botMult:{easy:1.4,normal:1.6,hard:2.0},stakes:[500,1000,5000,10000,50000,100000,500000,1000000]};
+ const D={enabled:true,feePct:10,split4:[70,30],botMult:{easy:1.4,normal:1.6,hard:2.0},stakes:[500,1000,5000,10000,50000,100000,500000,1000000],voiceIdleSec:60,giftPct:80};
  let c=D;try{const g=(await getDoc(doc(db,"config","games"))).data()||{};c={...D,...g,botMult:{...D.botMult,...(g.botMult||{})}}}catch(e){}
  $("#gon").checked=c.enabled!==false;$("#gfee").value=c.feePct;$("#gs1").value=c.split4[0];$("#gs2").value=c.split4[1];
- $("#gbe").value=c.botMult.easy;$("#gbn").value=c.botMult.normal;$("#gbh").value=c.botMult.hard;$("#gst").value=c.stakes.map(fmt).join("  |  ");
+ $("#gbe").value=c.botMult.easy;$("#gbn").value=c.botMult.normal;$("#gbh").value=c.botMult.hard;$("#gst").value=c.stakes.map(fmt).join("  |  ");$("#gvi").value=c.voiceIdleSec;$("#ggp").value=c.giftPct;
  $("#gsv").onclick=async()=>{const n=x=>Number($(x).value);
-  const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split("|").map(x=>parseInt(x.replace(/[^0-9]/g,""))).filter(x=>x>0)};
+  const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split("|").map(x=>parseInt(x.replace(/[^0-9]/g,""))).filter(x=>x>0),voiceIdleSec:n("#gvi"),giftPct:n("#ggp")};
+  if(!(v.voiceIdleSec>=10&&v.voiceIdleSec<=600))return toast("মাইক বন্ধের সময় ১০–৬০০ সেকেন্ড দিন");
+  if(!(v.giftPct>=0&&v.giftPct<=100))return toast("গিফটের ভাগ ০–১০০% দিন");
   if(v.split4[0]+v.split4[1]!==100)return toast("৪ জনের ভাগ মিলে ১০০ হতে হবে");
   if(!(v.feePct>=0&&v.feePct<=30))return toast("ফি ০–৩০% এর মধ্যে দিন");
   if(!await dlg("গেম সেটিং সেভ করবেন?"))return;
@@ -948,8 +979,108 @@ async function giftinc(){
  }catch(e){$("#gilog").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 
+// ---------- Change a user's normal ID ----------
+async function changeId(uid){
+ const u=cache[uid]||(await getDoc(doc(db,"users",uid))).data()||{};const old=ownId(u);
+ modal(`<h3 style="margin-top:0">🆔 আইডি বদলান — ${esc(u.name||"")}</h3><div class="muted">এখনকার সাধারণ আইডি: <b>${esc(old)}</b>${vipOn(u)?` · VIP ${esc(u.vipId)} চালু আছে (এটা বদলাবে না)`:""}</div>
+  <label class="f">নতুন আইডি (৬ সংখ্যা)</label><input class="inp" id="nid" inputmode="numeric" maxlength="6" style="width:100%" placeholder="যেমন 456789">
+  <label class="f">কারণ</label><input class="inp" id="nwhy" style="width:100%" placeholder="যেমন ইউজারের অনুরোধ">
+  <div class="row" style="margin-top:16px"><button class="btn g" id="nok">বদলান</button><button class="btn" id="nclose">বন্ধ</button></div>`);
+ $("#nclose").onclick=closeM;
+ $("#nok").onclick=async()=>{const v=$("#nid").value.replace(/[^0-9]/g,""),why=$("#nwhy").value.trim();
+  if(!/^[1-9][0-9]{5}$/.test(v))return toast("৬ সংখ্যার আইডি দিন (০ দিয়ে শুরু নয়)");
+  if(v===old)return toast("এটাই এখনকার আইডি");
+  try{const ex=await getDoc(doc(db,"ids",v));if(ex.exists())return toast(ex.data().type==="vip"?"এটা একটা VIP আইডি — VIP পেজ থেকে দিন":"এই আইডি অন্য কারো আছে");
+   if(!await dlg(`${u.name}-এর আইডি ${old} থেকে ${v} করবেন?`))return;
+   const b=writeBatch(db);
+   b.set(doc(db,"ids",v),{type:"user",uid,at:serverTimestamp()});
+   if(old&&old!=="—")b.delete(doc(db,"ids",old));
+   b.update(doc(db,"users",uid),{userId:v,playerId:v,updatedAt:serverTimestamp()});
+   syncProfile(b,uid,{userId:v});
+   b.set(doc(collection(db,"users",uid,"inbox")),{title:"Your ID was changed",body:`Your LudoMeet ID is now ${v} (was ${old}).`,kind:"system",at:serverTimestamp()});
+   await b.commit();await log("id-change",v,{from:old,to:v,why,name:u.name});toast("আইডি বদলানো হয়েছে ✓");closeM();refresh();
+  }catch(e){toast("ব্যর্থ: "+e.message)}};
+}
+
+// ---------- Account recovery: move an old account onto a new Gmail ----------
+async function transfer(){
+ view(`<div class="card" style="max-width:760px"><div class="ttl">অ্যাকাউন্ট ফেরত (পুরোনো অ্যাকাউন্ট → নতুন Gmail)</div>
+  <div class="muted" style="line-height:1.6">১) ইউজারকে যাচাই করুন (ফেসবুক/কাগজপত্র)। ২) সে নতুন Gmail দিয়ে নতুন অ্যাকাউন্ট খুলে তার নতুন আইডি দেবে (খোলার <b>৭২ ঘণ্টার মধ্যে</b>)। ৩) নিচে দুই আইডি দিন।<br>
+  পুরোনো অ্যাকাউন্টের <b>সব কিছু</b> (আইডি, VIP, কয়েন, ডায়মন্ড, লেভেল, পদ, ছবি, ফলোয়ার/ফলোয়িং, হিস্টোরি) নতুন Gmail-এ যাবে — <b>মেসেজ যাবে না</b>। নতুন অ্যাকাউন্টের নিজের সব কিছু বাতিল হবে। পুরোনো Gmail দিয়ে ঢুকলে সে একদম নতুন খালি অ্যাকাউন্ট পাবে।</div>
+  <div class="row" style="margin-top:14px"><input class="inp" id="tfo" placeholder="পুরোনো আইডি" style="flex:1"><span style="font-size:22px">→</span><input class="inp" id="tfn" placeholder="নতুন আইডি" style="flex:1"><button class="btn o" id="tfgo">দেখুন</button></div>
+  <label class="f">যাচাইয়ের কারণ / নোট</label><input class="inp" id="tfw" style="width:100%" placeholder="যেমন ফেসবুক ও NID যাচাই করা হয়েছে">
+  <div id="tfbox" style="margin-top:14px"></div></div>`);
+ $("#tfgo").onclick=async()=>{
+  const box=$("#tfbox");box.innerHTML=`<div class="muted">খোঁজা হচ্ছে…</div>`;
+  try{const [a,b]=await Promise.all([findUsers($("#tfo").value.trim()),findUsers($("#tfn").value.trim())]);
+   if(a.length!==1||b.length!==1){box.innerHTML=`<div class="empty">দুই আইডিই সঠিকভাবে লিখুন — ইউজার পাওয়া যায়নি</div>`;return}
+   if(a[0].id===b[0].id){box.innerHTML=`<div class="empty">দুটো একই অ্যাকাউন্ট</div>`;return}
+   const O={id:a[0].id,...a[0].data()},N={id:b[0].id,...b[0].data()};
+   const made=N.createdAt?.toMillis?N.createdAt.toMillis():0;const hrs=made?(Date.now()-made)/36e5:999;const ok=hrs<=72;
+   const card=(t,u,extra)=>`<div class="stat" style="flex:1"><span>${t}</span><b style="font-size:16px">${esc(u.name||"")}</b><div class="muted" style="font-size:12px">ID ${esc(shownId(u))} · ${esc(u.email||"")}<br>কয়েন ${fmt(u.coins)} · ডায়মন্ড ${fmt(u.diamonds)} · লেভেল ${lvl(u)}${extra||""}</div></div>`;
+   box.innerHTML=`<div class="row" style="gap:12px;align-items:stretch">${card("পুরোনো অ্যাকাউন্ট (যা ফেরত যাবে)",O)}${card("নতুন অ্যাকাউন্ট (যা বাতিল হবে)",N,`<br>খোলা হয়েছে ${made?Math.floor(hrs)+" ঘণ্টা আগে":"—"}`)}</div>
+    ${ok?"":`<div class="empty" style="color:#b02a2a;margin-top:10px">নতুন অ্যাকাউন্ট ৭২ ঘণ্টার বেশি পুরোনো — ফেরত দেওয়া যাবে না।</div>`}
+    ${ok&&((N.coins||0)>0||(N.diamonds||0)>0)?`<div style="color:#b02a2a;font-weight:800;margin-top:10px">⚠️ নতুন অ্যাকাউন্টে ${fmt(N.coins)} কয়েন ও ${fmt(N.diamonds)} ডায়মন্ড আছে — এগুলো বাদ যাবে।</div>`:""}
+    ${ok?`<div class="muted" style="margin-top:8px">বাকি সময়: ${Math.max(0,Math.floor(72-hrs))} ঘণ্টা</div><button class="btn r" id="tfok" style="margin-top:12px">♻️ পুরোনো অ্যাকাউন্ট নতুন Gmail-এ সরান</button>`:""}`;
+   if(ok)$("#tfok").onclick=()=>doTransfer(O,N,$("#tfw").value.trim());
+  }catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}};
+}
+async function doTransfer(O,N,why){
+ if(!why)return toast("যাচাইয়ের কারণ / নোট লিখুন");
+ if(!await dlg(`নিশ্চিত? ${O.name} (ID ${shownId(O)}) এর পুরো অ্যাকাউন্ট ${N.email}-এ যাবে। নতুন অ্যাকাউন্ট (ID ${shownId(N)}) বাতিল হবে। এটা ফেরানো যাবে না।`))return;
+ const box=$("#tfbox");box.insertAdjacentHTML("beforeend",`<div class="muted" id="tfp" style="margin-top:10px">সরানো হচ্ছে… পেজ বন্ধ করবেন না</div>`);
+ const step=t=>{const e=$("#tfp");if(e)e.textContent=t};
+ const o=O.id,n=N.id;
+ try{
+  // Small helper: run writes in batches of 400.
+  const ops=[];const run=async()=>{for(let k=0;k<ops.length;k+=400){const b=writeBatch(db);ops.slice(k,k+400).forEach(f=>f(b));await b.commit()}ops.length=0};
+  step("অ্যাকাউন্টের তথ্য সরানো হচ্ছে…");
+  const ou=(await getDoc(doc(db,"users",o))).data()||{},op=(await getDoc(doc(db,"profiles",o))).data()||{};
+  const nu=(await getDoc(doc(db,"users",n))).data()||{};
+  const keep={email:nu.email||"",updatedAt:serverTimestamp(),transferredFrom:o,transferredAt:serverTimestamp()};
+  ops.push(b=>b.set(doc(db,"users",n),{...ou,...keep}));
+  ops.push(b=>b.set(doc(db,"profiles",n),{...op,updatedAt:serverTimestamp()}));
+  if(ou.userId)ops.push(b=>b.set(doc(db,"ids",ou.userId),{type:"user",uid:n,at:serverTimestamp()},{merge:true}));
+  if(nu.userId&&nu.userId!==ou.userId)ops.push(b=>b.delete(doc(db,"ids",nu.userId)));
+  if(ou.vipId)ops.push(b=>b.set(doc(db,"ids",ou.vipId),{uid:n},{merge:true}));
+  // Photos
+  for(const pid of (ou.photos||[])){const ph=(await getDoc(doc(db,"profiles",o,"photos",pid))).data();if(ph){ops.push(b=>b.set(doc(db,"profiles",n,"photos",pid),ph));ops.push(b=>b.delete(doc(db,"profiles",o,"photos",pid)))}}
+  await run();
+  step("ফলোয়ার ও ফলোয়িং সরানো হচ্ছে…");
+  // The new account's own lists are cancelled.
+  for(const sub of ["followers","following","visitors","visited"]){const s=await getDocs(collection(db,"users",n,sub));s.docs.forEach(d=>ops.push(b=>b.delete(d.ref)))}
+  await run();
+  const moveList=async(sub,mirror)=>{const s=await getDocs(collection(db,"users",o,sub));
+   for(const d of s.docs){const other=d.id;if(other===n)continue;
+    ops.push(b=>b.set(doc(db,"users",n,sub,other),d.data()));ops.push(b=>b.delete(d.ref));
+    ops.push(b=>b.delete(doc(db,"users",other,mirror,o)));ops.push(b=>b.set(doc(db,"users",other,mirror,n),d.data()))}};
+  await moveList("followers","following");await moveList("following","followers");
+  await moveList("visitors","visited");await moveList("visited","visitors");
+  await run();
+  step("কয়েন ও ডায়মন্ড হিস্টোরি সরানো হচ্ছে…");
+  for(const sub of ["coinLog","diamondLog"]){
+   const ns=await getDocs(collection(db,"users",n,sub));ns.docs.forEach(d=>ops.push(b=>b.delete(d.ref)));
+   const s=await getDocs(collection(db,"users",o,sub));s.docs.forEach(d=>{ops.push(b=>b.set(doc(db,"users",n,sub,d.id),d.data()));ops.push(b=>b.delete(d.ref))})}
+  await run();
+  step("পুরোনো Gmail-এর অ্যাকাউন্ট মুছে ফেলা হচ্ছে…");
+  ops.push(b=>b.delete(doc(db,"users",o)));ops.push(b=>b.delete(doc(db,"profiles",o)));
+  ops.push(b=>b.set(doc(collection(db,"users",n,"inbox")),{title:"Your account is back",body:`Your old LudoMeet account (ID ${shownId(ou)}) was moved to this Gmail. Restart the app to see everything.`,kind:"system",at:serverTimestamp()}));
+  ops.push(b=>b.set(doc(collection(db,"adminLogs")),{action:"account-transfer",target:shownId(ou),info:{fromUid:o,toUid:n,fromEmail:ou.email||"",toEmail:nu.email||"",cancelledId:nu.userId||"",why},by:auth.currentUser.email,at:serverTimestamp()}));
+  await run();
+  step("✅ হয়ে গেছে! নতুন Gmail দিয়ে অ্যাপ নতুন করে খুললে পুরোনো অ্যাকাউন্ট দেখাবে।");
+  toast("অ্যাকাউন্ট ফেরত দেওয়া হয়েছে ✓");
+ }catch(e){step("ব্যর্থ: "+e.message+" — আবার চেষ্টা করলে যেখানে থেমেছিল সেখান থেকে চলবে");toast("ব্যর্থ: "+e.message)}
+}
+
+// ---------- App error reports ----------
+async function crashes(){
+ view(`<div class="card"><div class="ttl">অ্যাপ এরর (ইউজারদের ফোন থেকে)</div><div class="muted">অ্যাপে কোনো ভুল হলে এখানে আসে, যাতে দ্রুত ঠিক করা যায়।</div><div class="tw" id="crl" style="margin-top:10px"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ try{const s=await getDocs(query(collection(db,"crashes"),orderBy("at","desc"),limit(100)));
+  $("#crl").innerHTML=s.size?`<table><tr><th>সময়</th><th>ইউজার</th><th>ভার্সন</th><th>এরর</th></tr>${s.docs.map(d=>{const c=d.data();return `<tr><td style="white-space:nowrap">${dts(c.at)}</td><td>${esc(c.userId||"—")}</td><td>${esc(c.version||"")}</td><td><b style="font-size:12px">${esc(c.error)}</b><pre style="white-space:pre-wrap;font-size:11px;max-height:120px;overflow:auto;margin:4px 0 0">${esc(c.stack||"")}</pre></td></tr>`}).join("")}</table>`:`<div class="empty">কোনো এরর নেই 🎉</div>`;
+ }catch(e){$("#crl").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
-const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports,games,live,gifts,giftinc};
+const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports,games,live,gifts,giftinc,transfer,crashes};
 
 // ---------- Auth ----------
 $("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};

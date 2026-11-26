@@ -15,6 +15,7 @@ const DEFAULTS = {
   split4: [70, 30],
   botMult: { easy: 1.4, normal: 1.6, hard: 2.0 },
   giftPct: 80, // share of a gift's price the receiver gets as diamonds
+  voiceIdleSec: 60, // a silent mic turns itself off after this many seconds
 };
 
 const id = () => crypto.randomBytes(10).toString('hex');
