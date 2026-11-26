@@ -19,6 +19,8 @@ const AUTO_MS = +process.env.AUTO_MS || 500;     // pause before an only-possibl
 
 const fs = require('fs');
 const KEY_FILE = process.env.KEY_FILE || '/opt/ludomeet-game/service-account.json';
+const AGORA_FILE = process.env.AGORA_FILE || '/opt/ludomeet-game/agora.json';
+const AGORA_APP_ID = '6a67d732e21f49d58fdda4a504f48b26';
 const SETUP = !process.env.MEMORY && !fs.existsSync(KEY_FILE);
 const store = process.env.MEMORY ? memoryStore() : SETUP ? null : firestoreStore(KEY_FILE);
 
@@ -415,7 +417,26 @@ async function main() {
   const n = await store.recover().catch(e => { log('recover failed', e.message); return 0; });
   if (n) log('refunded', n, 'stakes from before restart');
   const server = http.createServer((req, res) => {
-    if (req.url.endsWith('/health')) { res.end(JSON.stringify({ ok: true, rooms: rooms.size, online: clients.size })); return; }
+    if (req.url.endsWith('/health')) { res.end(JSON.stringify({ ok: true, rooms: rooms.size, online: clients.size, voice: fs.existsSync(AGORA_FILE) })); return; }
+    // One-time: the owner pastes the Agora App Certificate from
+    // playludomeet.com/setup-agora.html. It is kept only on this server.
+    if (req.url.endsWith('/setup-agora') && req.method === 'POST') {
+      res.setHeader('Content-Type', 'application/json');
+      let body = '';
+      req.on('data', c => { body += c; if (body.length > 2000) req.destroy(); });
+      req.on('end', () => {
+        try {
+          const cert = String(JSON.parse(body).cert || '').trim().toLowerCase();
+          if (!/^[0-9a-f]{32}$/.test(cert)) throw new Error('bad');
+          if (cert === AGORA_APP_ID) throw new Error('appid');
+          if (fs.existsSync(AGORA_FILE)) throw new Error('exists');
+          fs.writeFileSync(AGORA_FILE, JSON.stringify({ appId: AGORA_APP_ID, cert }), { mode: 0o600 });
+          log('agora certificate installed');
+          res.end(JSON.stringify({ ok: true }));
+        } catch (e) { res.statusCode = 400; res.end(JSON.stringify({ ok: false, error: e.message })); }
+      });
+      return;
+    }
     res.statusCode = 404; res.end();
   });
   const wss = new WebSocketServer({ server, maxPayload: 4096 });

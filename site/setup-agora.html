@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>LudoMeet — ভয়েস চালু করুন</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1b1240;font-family:system-ui,Segoe UI,Roboto,sans-serif;color:#fff}
+  .card{background:#2d2163;border-radius:22px;padding:28px;max-width:440px;width:90%;text-align:center}
+  h1{font-size:22px;margin:0 0 8px}
+  p{opacity:.85;line-height:1.55;margin:6px 0 16px}
+  input{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:2px solid #5b45d6;background:#1b1240;color:#fff;font-size:15px;text-align:center;font-family:monospace}
+  button{margin-top:14px;width:100%;background:#f5b301;color:#1b1240;font-weight:800;padding:15px;border:0;border-radius:14px;font-size:17px;cursor:pointer}
+  #msg{margin-top:18px;font-size:16px;font-weight:700;min-height:24px}
+  .ok{color:#49e37a}.err{color:#ff6b6b}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🎤 ভয়েস চালু করুন (Agora)</h1>
+  <p>Agora Console → LudoMeet প্রজেক্ট → <b>Primary Certificate</b>-এর পাশের কপি বাটন চাপুন, তারপর নিচের ঘরে পেস্ট করে বাটন চাপুন। এটা সরাসরি আপনার সার্ভারে যাবে।</p>
+  <input id="c" placeholder="App Certificate পেস্ট করুন" autocomplete="off" spellcheck="false">
+  <button id="b">সার্ভারে বসান</button>
+  <div id="msg"></div>
+</div>
+<script>
+  const msg = document.getElementById('msg'), inp = document.getElementById('c');
+  document.getElementById('b').onclick = async () => {
+    const cert = inp.value.trim();
+    if (!/^[0-9a-fA-F]{32}$/.test(cert)) { msg.className = 'err'; msg.textContent = '❌ এটা সঠিক Certificate নয় (৩২ অক্ষরের হয়)।'; return; }
+    msg.className = ''; msg.textContent = 'পাঠানো হচ্ছে…';
+    try {
+      const r = await fetch('/game/setup-agora', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cert }) });
+      const j = await r.json().catch(() => ({}));
+      inp.value = '';
+      if (j.ok) { msg.className = 'ok'; msg.textContent = '✅ হয়ে গেছে! ভয়েসের চাবি সার্ভারে বসানো হয়েছে।'; }
+      else {
+        msg.className = 'err';
+        msg.textContent = j.error === 'exists' ? 'চাবি আগেই বসানো আছে ✅ আর কিছু করতে হবে না।'
+          : j.error === 'appid' ? '❌ এটা App ID। App ID নয়, Primary Certificate কপি করে দিন।'
+          : j.error ? '❌ এটা সঠিক Certificate নয়।' : '❌ সার্ভারে পৌঁছানো যায়নি। একটু পরে আবার চেষ্টা করুন।';
+      }
+    } catch (e) { msg.className = 'err'; msg.textContent = '❌ সার্ভারে পৌঁছানো যায়নি।'; }
+  };
+</script>
+</body>
+</html>
