@@ -19,6 +19,14 @@ button{font:inherit;cursor:pointer}input,select,textarea{font:inherit}
 .btn:disabled{opacity:.5;cursor:default}
 .drawer{position:fixed;inset:0 auto 0 0;width:270px;background:#fff;box-shadow:4px 0 24px #0002;transform:translateX(-105%);transition:.2s;z-index:20;overflow:auto;padding:16px}
 .drawer.open{transform:none}.shade{position:fixed;inset:0;background:#0003;z-index:15;display:none}.shade.open{display:block}
+#app{transition:padding-left .2s}
+@media(min-width:900px){body.side #app{padding-left:270px}body.side .drawer{transform:none;box-shadow:none;border-right:1px solid var(--line);z-index:6}body.side .shade{display:none!important}}
+.ut td{white-space:nowrap}.ut .nm{display:flex;align-items:center;gap:10px}.ut .nm b{display:block;max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.ut .sub{font-size:12px;color:var(--muted)}.gd{display:inline-block;min-width:26px;text-align:center;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:#e8efff;color:#3b6fe0}.gd.f{background:#ffe6f0;color:#c2397a}
+.vipid{display:inline-block;font-weight:800;padding:2px 9px;border-radius:8px;color:#3a1a00;background:linear-gradient(90deg,#ffd76a,#ff9a3d,#ffd76a);background-size:200% 100%;animation:vipsh 2.5s linear infinite;letter-spacing:.06em}
+@keyframes vipsh{to{background-position:-200% 0}}
+.ic{border:1px solid var(--line);background:#fff;border-radius:50%;width:34px;height:34px}
+.chip .n{font-size:11px;opacity:.75;margin-left:4px}
 .brand{display:flex;gap:10px;align-items:center;margin-bottom:14px}.brand img{width:44px;height:44px;border-radius:12px}.brand small{display:block;color:var(--accent);font-size:11px;letter-spacing:.2em;font-weight:700}.brand b{font-size:18px}
 .drawer input{width:100%;padding:9px 14px;border:1px solid var(--mint2);background:#f6fbf9;border-radius:12px;margin-bottom:10px}
 .sec{font-size:11px;letter-spacing:.2em;color:var(--muted);margin:16px 6px 6px;font-weight:700}
@@ -88,7 +96,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,addDoc,query,where,orderBy,limit,increment,serverTimestamp,writeBatch,deleteDoc,deleteField,getCountFromServer,getAggregateFromServer,sum,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,addDoc,query,where,orderBy,limit,startAfter,increment,serverTimestamp,writeBatch,deleteDoc,deleteField,getCountFromServer,getAggregateFromServer,sum,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={apiKey:"AIzaSyAVpp9WD1k_R9g0Fvc_oNrzeVhqd8Odns0",authDomain:"ludomeet-fcea5.firebaseapp.com",projectId:"ludomeet-fcea5",storageBucket:"ludomeet-fcea5.firebasestorage.app",messagingSenderId:"805260737667",appId:"1:805260737667:web:ed2cbb6211aeaa7e41afb6"};
 const ADMINS=["allinbazarofficial@gmail.com"];
@@ -364,9 +372,15 @@ const NAV=[
 let current="dash";
 function drawNav(f=""){const q=f.toLowerCase();$("#navlist").innerHTML=NAV.map(([s,items])=>{const it=items.filter(i=>!q||i[2].toLowerCase().includes(q)||T(i[2]).toLowerCase().includes(q));if(!it.length)return"";return `<div class="sec">${s}</div>`+it.map(([k,ic,l,tag])=>`<button class="nav ${k===current?"act":""}" data-k="${k}">${ic} ${l}${tag?`<span class="tag">${tag}</span>`:""}</button>`).join("")}).join("")}
 const openD=o=>{$("#drawer").classList.toggle("open",o);$("#shade").classList.toggle("open",o)};
-$("#ham").onclick=()=>openD(true);$("#shade").onclick=()=>openD(false);
+/* Wide screens: the menu stays open beside the page; ☰ folds it away and opens it again (remembered). Phones: ☰ slides it over the page. */
+const wide=()=>innerWidth>=900;
+let sideOn=(()=>{try{return localStorage.getItem("sideOn")!=="0"}catch(e){return true}})();
+function applySide(){const w=wide();document.body.classList.toggle("side",w&&sideOn);if(w){$("#drawer").classList.toggle("open",sideOn);$("#shade").classList.remove("open")}else{document.body.classList.remove("side")}}
+$("#ham").onclick=()=>{if(wide()){sideOn=!sideOn;try{localStorage.setItem("sideOn",sideOn?"1":"0")}catch(e){}applySide()}else openD(!$("#drawer").classList.contains("open"))};
+$("#shade").onclick=()=>openD(false);
+let _rw=wide();addEventListener("resize",()=>{const w=wide();if(w!==_rw){_rw=w;if(!w)openD(false);applySide()}});applySide();
 $("#nsearch").oninput=e=>drawNav(e.target.value);
-$("#navlist").onclick=e=>{const b=e.target.closest(".nav");if(!b)return;go(b.dataset.k);openD(false)};
+$("#navlist").onclick=e=>{const b=e.target.closest(".nav");if(!b)return;go(b.dataset.k);if(!wide())openD(false)};
 function go(k){current=k;drawNav($("#nsearch").value);const n=NAV.flatMap(x=>x[1]).find(i=>i[0]===k);$("#ptitle").textContent=n?n[2]:"";(PAGES[k]||soon)()}
 const view=h=>{$("#view").innerHTML=h};
 function modal(h){$("#mbody").innerHTML=h;$("#modal").classList.add("open")}
@@ -380,8 +394,10 @@ function rangeEnd(){return range==="yesterday"?bdDayStart(0):new Date(Date.now()
 async function dash(){
  view(`<div class="card"><div class="ttl" style="color:var(--accent)">BANGLADESH TIME</div><div class="muted" style="margin-bottom:12px">প্রতিদিনের হিসাব শুরু হয় বাংলাদেশ সময় রাত ১২টায়।</div>
  <div class="chips">${[["today","আজ"],["yesterday","গতকাল"],["week","এই সপ্তাহ"],["month","গত ৩০ দিন"]].map(([k,l])=>`<button class="chip ${k===range?"act":""}" data-r="${k}">${l}</button>`).join("")}<button class="chip" id="rf">⟳ রিফ্রেশ</button></div></div>
+ <div id="dgames"><div class="card empty">লোড হচ্ছে…</div></div>
  <div id="dstats"><div class="card empty">লোড হচ্ছে…</div></div>`);
  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;dash()});$("#rf").onclick=dash;
+ dashGames();
  try{
   const U=collection(db,"users"),W=collection(db,"withdrawals"),from=Timestamp.fromDate(rangeStart());
   const depP=getDocs(query(collection(db,"deposits"),where("status","==","approved"),limit(3000))).then(q=>{const a=rangeStart().getTime(),b=rangeEnd().getTime();let all=0,sel=0;q.docs.forEach(d=>{const x=d.data(),t=x.decidedAt?.toMillis?.()||0,v=Number(x.amount)||0;all+=v;if(t>=a&&t<b)sel+=v});return{all,sel}}).catch(()=>({all:0,sel:0}));
@@ -406,25 +422,97 @@ async function dash(){
  }catch(e){$("#dstats").innerHTML=`<div class="card empty">লোড করা যায়নি: ${esc(e.message)}</div>`}
 }
 
-// ---------- Users ----------
-async function users(){
- view(`<div class="card"><div class="row"><input class="inp" id="uq" placeholder="প্লেয়ার আইডি বা Gmail লিখুন" style="flex:1"><button class="btn o" id="ugo">খুঁজুন</button><button class="btn" id="uall">সর্বশেষ ৫০ জন</button></div></div><div class="card"><div class="tw" id="ulist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
- $("#ugo").onclick=searchUsers;$("#uq").onkeydown=e=>{if(e.key==="Enter")searchUsers()};$("#uall").onclick=()=>listUsers(query(collection(db,"users"),orderBy("createdAt","desc"),limit(50)));
- listUsers(query(collection(db,"users"),orderBy("createdAt","desc"),limit(50)));
+/* Matches played and coins earned in the chosen Bangladesh-time range (from gameStats/giftStats, one doc per day). */
+async function dashGames(){
+ const box=$("#dgames");
+ try{
+  const back={yesterday:[1],week:[0,1,2,3,4,5,6],month:[...Array(30).keys()]}[range]||[0];
+  const ids=back.map(b=>new Date(Date.now()+BD_MS-b*86400000).toISOString().slice(0,10));
+  const [gs,fs,lv]=await Promise.all([
+   Promise.all(ids.map(d=>getDoc(doc(db,"gameStats",d)).then(x=>x.data()||{}).catch(()=>({})))),
+   Promise.all(ids.map(d=>getDoc(doc(db,"giftStats",d)).then(x=>x.data()||{}).catch(()=>({})))),
+   getDoc(doc(db,"gameLive","now")).then(x=>x.data()||{}).catch(()=>({}))]);
+  const t={m:0,p:0,f:0,b:0,i:0,online:0,bot:0},g={c:0,coins:0,i:0};
+  gs.forEach(x=>{t.m+=x.matches||0;t.p+=x.players||0;t.f+=x.fees||0;t.b+=x.botIncome||0;t.i+=x.income||0;Object.entries(x.byMode||{}).forEach(([k,v])=>{if(k.startsWith("bot"))t.bot+=v.matches||0})});
+  fs.forEach(x=>{g.c+=x.count||0;g.coins+=x.coins||0;g.i+=x.income||0});
+  const lbl={today:"আজ",yesterday:"গতকাল",week:"এই সপ্তাহ",month:"গত ৩০ দিন"}[range];
+  const st=(l,v,hl,c)=>`<div class="stat ${hl?"hl":""}"${c?` style="border-color:${c}"`:""}><span>${l}</span><b>${v}</b></div>`;
+  box.innerHTML=`<div class="card" style="border:2px solid #bfe3d2"><div class="ttl" style="color:var(--green)">GAMES · INCOME — ${lbl}</div><div class="grid">
+   ${st("🎲 মোট ম্যাচ খেলা হয়েছে",fmt(t.m),1)}
+   ${st("👥 খেলোয়াড় (মোট বসেছে)",fmt(t.p))}
+   ${st("🌐 অনলাইন ম্যাচ / 🤖 কম্পিউটার",fmt(t.m-t.bot)+" / "+fmt(t.bot))}
+   ${st("💰 ম্যাচ ফি আয় (কয়েন)",fmt(t.f))}
+   ${st("🤖 কম্পিউটার খেলা আয় (কয়েন)",fmt(t.b))}
+   ${st("🎁 গিফট আয় (কয়েন) · "+fmt(g.c)+"টি গিফট",fmt(g.i))}
+   ${st("✅ মোট আয় (কয়েন)",fmt(t.i+g.i),1)}
+   ${st("🟢 এখন চলমান খেলা",fmt(lv.playing)+" · "+fmt(lv.playersInGames)+" জন",0,"#9fd9be")}
+  </div><div class="muted" style="margin-top:10px;font-size:12px">মোট আয় = ম্যাচ ফি + কম্পিউটার খেলা + গিফটের ২০% অংশ। বিস্তারিত: "অনলাইন গেম আয়" ও "গিফট আয়"।</div></div>`;
+ }catch(e){box.innerHTML=`<div class="card empty">গেমের হিসাব লোড হয়নি: ${esc(e.message)}</div>`}
 }
-async function searchUsers(){const q=$("#uq").value.trim();if(!q)return;const U=collection(db,"users");
+
+// ---------- Users ----------
+/* Role filters at the top: tap one to see everyone who holds it; search by ID, VIP ID, Gmail or name. */
+const UFILT=[["all","All"],["user","User"],["vip","VIP"],["bd","BD"],["admin","Admin"],["superAdmin","Super Admin"],["seller","Coin Seller"],["superSeller","Super Seller"],["payroll","Payroll / Portal"],["management","Management"],["banned","Banned"]];
+const SELLERS=["coinSeller","primarySeller","normalSeller","beginnerSeller","seniorSeller"];
+let ufilt="all",ulast=null;
+function ufQuery(k){const U=collection(db,"users");
+ if(k==="vip")return query(U,where("vipUntil",">",Timestamp.now()));
+ if(k==="banned")return query(U,where("banned","==",true));
+ if(k==="seller")return query(U,where("roles","array-contains-any",SELLERS));
+ if(k==="all"||k==="user")return query(U,orderBy("createdAt","desc"));
+ return query(U,where("roles","array-contains",k))}
+async function users(){
+ view(`<div class="card"><div class="row" style="margin-bottom:12px"><input class="inp" id="uq" placeholder="🔍 আইডি, VIP আইডি, Gmail বা নাম লিখুন" style="flex:1"><button class="btn o" id="ugo">খুঁজুন</button></div>
+  <div class="chips" id="uchips">${UFILT.map(([k,l])=>`<button class="chip ${k===ufilt?"act":""}" data-f="${k}">${l}<span class="n" id="ufn-${k}"></span></button>`).join("")}</div></div>
+  <div class="card"><div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><h3 style="margin:0 0 2px">User Management</h3><span class="muted" id="uhint"></span></div>
+  <div class="tw" id="ulist" style="margin-top:10px"><div class="empty">লোড হচ্ছে…</div></div><div style="text-align:center;margin-top:12px"><button class="btn" id="umore" style="display:none">আরও দেখুন</button></div></div>`);
+ $("#ugo").onclick=searchUsers;$("#uq").onkeydown=e=>{if(e.key==="Enter")searchUsers()};
+ document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{ufilt=b.dataset.f;document.querySelectorAll("[data-f]").forEach(x=>x.classList.toggle("act",x===b));$("#uq").value="";loadFilter(true)});
+ $("#umore").onclick=()=>loadFilter(false);
+ UFILT.filter(f=>f[0]!=="user").forEach(([k])=>getCountFromServer(ufQuery(k)).then(c=>{const e=$("#ufn-"+k);if(e)e.textContent="("+fmt(c.data().count)+")"}).catch(()=>{}));
+ loadFilter(true);
+}
+async function loadFilter(reset){
+ const k=ufilt;if(reset)ulast=null;
+ const hint={all:"সব ইউজার — নতুনরা আগে",user:"কোনো পদ নেই এমন সাধারণ ইউজার",vip:"এখন VIP আইডি চালু আছে",banned:"ব্যান করা ইউজার"}[k]||`যাদের "${(UFILT.find(f=>f[0]===k)||[k,k])[1]}" পদ দেওয়া আছে`;
+ $("#uhint").textContent=hint;
+ const page=k==="user"?200:50;
+ try{let q=ufQuery(k);if(ulast&&(k==="all"||k==="user"))q=query(q,startAfter(ulast));q=query(q,limit(page));
+  const sn=await getDocs(q);let docs=sn.docs;
+  if(sn.docs.length)ulast=sn.docs[sn.docs.length-1];
+  if(k==="user")docs=docs.filter(d=>!(d.data().roles||[]).length);
+  renderUsers(docs,!reset);
+  $("#umore").style.display=(k==="all"||k==="user")&&sn.docs.length>=page?"inline-block":"none";
+ }catch(e){$("#ulist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+async function searchUsers(){const q=$("#uq").value.trim();if(!q){if($("#uchips"))loadFilter(true);return}
+ if($("#umore"))$("#umore").style.display="none";if($("#uhint"))$("#uhint").textContent=`"${q}" এর ফলাফল`;
  renderUsers(await findUsers(q))}
 async function findUsers(q){const U=collection(db,"users");
  if(q.includes("@"))return (await getDocs(query(U,where("email","==",q.toLowerCase())))).docs.concat((await getDocs(query(U,where("email","==",q)))).docs).filter((d,i,a)=>a.findIndex(x=>x.id===d.id)===i);
  for(const f of ["userId","vipId","playerId"]){const s=await getDocs(query(U,where(f,"==",q)));if(!s.empty)return s.docs}
- return []}
+ /* Name: starts-with search, tried as typed and with a capital first letter. */
+ const seen=new Map();for(const v of [...new Set([q,q[0].toUpperCase()+q.slice(1)])]){try{(await getDocs(query(U,where("name",">=",v),where("name","<",v+""),orderBy("name"),limit(50)))).docs.forEach(d=>seen.set(d.id,d))}catch(e){}}
+ return [...seen.values()]}
 async function listUsers(q){try{const s=await getDocs(q);renderUsers(s.docs)}catch(e){$("#ulist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 let cache={};
-function renderUsers(docs){
- if(!docs.length){$("#ulist").innerHTML=`<div class="empty">কোনো ইউজার পাওয়া যায়নি</div>`;return}
+function renderUsers(docs,append){
+ const box=$("#ulist");
+ if(!docs.length&&!append){box.innerHTML=`<div class="empty">কোনো ইউজার পাওয়া যায়নি</div>`;return}
  docs.forEach(d=>{cache[d.id]=d.data()});
- $("#ulist").innerHTML=`<table><tr><th>ইউজার</th><th>আইডি</th><th>লেভেল</th><th>কয়েন</th><th>ডায়মন্ড</th><th>Locked</th><th>দেশ</th><th>যোগ দিয়েছে</th><th></th></tr>${docs.map(d=>{const u=d.data();return `<tr><td><img class="av" src="${u.photoData?"data:image/jpeg;base64,"+u.photoData:PRIVATE_LOGO}"> <b>${esc(u.name)}</b> ${u.banned?'<span class="badge ban">BANNED</span>':""}${u.coinSeller?' <span class="badge seller">SELLER</span>':""}${(u.roles||[]).filter(r=>r!=="coinSeller").map(r=>` <span class="badge role">${esc((ROLES.find(x=>x[0]===r)||[r,r])[1])}</span>`).join("")}<div class="muted" style="font-size:12px">${esc(u.email)}</div></td><td>${idCell(u)}</td><td><span class="badge lv">Lv ${lvl(u)}</span></td><td>${fmt(u.coins)}</td><td>${fmt(u.diamonds)}</td><td>${fmt(u.lockedDiamonds)}</td><td>${esc(u.country||"—")}</td><td>${dt(u.createdAt)}</td><td><button class="btn sm o" data-u="${d.id}">ম্যানেজ</button></td></tr>`}).join("")}</table>`;
- document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>manageUser(b.dataset.u));
+ const rk=r=>(ROLES.find(x=>x[0]===r)||[r,r])[1];
+ const rows=docs.map(d=>{const u=d.data();const g=String(u.gender||"").toLowerCase();
+  const id=vipOn(u)?`<span class="vipid">${esc(u.vipId)}</span> <span class="sub">(${esc(ownId(u))})</span>`:`<span class="sub">${esc(ownId(u))}</span>`;
+  const tags=(u.banned?' <span class="badge ban">BANNED</span>':"")+(u.roles||[]).map(r=>` <span class="badge role">${esc(rk(r))}</span>`).join("");
+  return `<tr><td><div class="nm"><img class="av" src="${u.photoData?"data:image/jpeg;base64,"+u.photoData:PRIVATE_LOGO}"><div><b>${esc(u.name||"—")}</b>${id}${tags?`<div>${tags}</div>`:""}<div class="sub">${esc(u.email||"")}</div></div></div></td>
+  <td><span class="badge lv">Lv ${lvl(u)}</span></td><td>${u.country?flag(u.country)+" "+esc(cname(u.country)):"—"}</td>
+  <td>${g?`<span class="gd ${g.startsWith("f")?"f":""}">${g.startsWith("f")?"F":g.startsWith("m")?"M":esc(g[0].toUpperCase())}</span>`:"—"}</td>
+  <td>🟡 ${fmt(u.coins)}</td><td>💎 ${fmt(u.diamonds)}</td><td>💎 ${fmt(u.lifetimeDiamonds)}</td><td>🔒 ${fmt(u.lockedDiamonds)}</td>
+  <td>${fmt(u.gamesPlayed)}</td><td class="sub">${u.lastSeen?ago(u.lastSeen):"—"}${u.appVersion?`<br>v${esc(u.appVersion)}`:""}</td><td class="sub">${day(u.createdAt)}</td>
+  <td><button class="ic" data-u="${d.id}" title="ম্যানেজ">✏️</button></td></tr>`}).join("");
+ const head=`<tr><th>Name / Pic / ID</th><th>Level</th><th>Country</th><th>Gender</th><th>Coins</th><th>Diamonds</th><th>Total Diamonds</th><th>Locked</th><th>Games</th><th>Last active</th><th>Joined</th><th>Action</th></tr>`;
+ if(append&&box.querySelector("table"))box.querySelector("table").insertAdjacentHTML("beforeend",rows);
+ else box.innerHTML=`<table class="ut">${head}${rows}</table>`;
+ box.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>manageUser(b.dataset.u));
 }
 async function manageUser(uid){
  const s=await getDoc(doc(db,"users",uid));const u=s.data();cache[uid]=u;
