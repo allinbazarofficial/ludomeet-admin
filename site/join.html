@@ -26,12 +26,14 @@
   <p>Open LudoMeet and enter the room. Don't have the app yet? Get it free on Google Play.</p>
   <div class="code" id="code"></div>
   <a class="btn open" id="open" href="#">Open in LudoMeet</a>
-  <a class="btn get" href="https://play.google.com/store/apps/details?id=com.ludomeet.app">Get LudoMeet on Google Play</a>
+  <a class="btn get" id="get" href="https://play.google.com/store/apps/details?id=com.ludomeet.app">Get LudoMeet on Google Play</a>
 </div>
 <script>
   var c = (new URLSearchParams(location.search).get('c') || '').replace(/\D/g, '').slice(0, 6);
   document.getElementById('code').textContent = c ? 'Room ' + c : '';
-  var store = 'https://play.google.com/store/apps/details?id=com.ludomeet.app';
+  // After installing from Google Play, the app reads the room from the referrer and opens it.
+  var store = 'https://play.google.com/store/apps/details?id=com.ludomeet.app' + (c ? '&referrer=' + encodeURIComponent('room=' + c) : '');
+  document.getElementById('get').href = store;
   var intent = 'intent://join?c=' + c + '#Intent;scheme=ludomeet;package=com.ludomeet.app;S.browser_fallback_url=' + encodeURIComponent(store) + ';end';
   var link = /Android/i.test(navigator.userAgent) ? intent : store;
   document.getElementById('open').href = link;

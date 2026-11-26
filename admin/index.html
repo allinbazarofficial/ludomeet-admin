@@ -98,6 +98,7 @@ const fmt=n=>Number(n||0).toLocaleString("en-US");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const toast=t=>{const e=$("#toast");e.textContent=T(t);e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3200)};
 const dt=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{timeZone:"Asia/Dhaka",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"};
+const dts=v=>{const d=v?.toDate?v.toDate():null;return d?d.toLocaleString("en-GB",{timeZone:"Asia/Dhaka",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}):"—"};
 const COUNTRIES=[["AF", "Afghanistan"], ["AL", "Albania"], ["DZ", "Algeria"], ["AS", "American Samoa"], ["AD", "Andorra"], ["AO", "Angola"], ["AI", "Anguilla"], ["AQ", "Antarctica"], ["AG", "Antigua and Barbuda"], ["AR", "Argentina"], ["AM", "Armenia"], ["AW", "Aruba"], ["AU", "Australia"], ["AT", "Austria"], ["AZ", "Azerbaijan"], ["BS", "Bahamas"], ["BH", "Bahrain"], ["BD", "Bangladesh"], ["BB", "Barbados"], ["BY", "Belarus"], ["BE", "Belgium"], ["BZ", "Belize"], ["BJ", "Benin"], ["BM", "Bermuda"], ["BT", "Bhutan"], ["BO", "Bolivia"], ["BQ", "Bonaire, Sint Eustatius and Saba"], ["BA", "Bosnia and Herzegovina"], ["BW", "Botswana"], ["BV", "Bouvet Island"], ["BR", "Brazil"], ["IO", "British Indian Ocean Territory"], ["BN", "Brunei Darussalam"], ["BG", "Bulgaria"], ["BF", "Burkina Faso"], ["BI", "Burundi"], ["CV", "Cabo Verde"], ["KH", "Cambodia"], ["CM", "Cameroon"], ["CA", "Canada"], ["KY", "Cayman Islands"], ["CF", "Central African Republic"], ["TD", "Chad"], ["CL", "Chile"], ["CN", "China"], ["CX", "Christmas Island"], ["CC", "Cocos (Keeling) Islands"], ["CO", "Colombia"], ["KM", "Comoros"], ["CG", "Congo"], ["CD", "Congo, The Democratic Republic of the"], ["CK", "Cook Islands"], ["CR", "Costa Rica"], ["HR", "Croatia"], ["CU", "Cuba"], ["CW", "Curaçao"], ["CY", "Cyprus"], ["CZ", "Czechia"], ["CI", "Côte d'Ivoire"], ["DK", "Denmark"], ["DJ", "Djibouti"], ["DM", "Dominica"], ["DO", "Dominican Republic"], ["EC", "Ecuador"], ["EG", "Egypt"], ["SV", "El Salvador"], ["GQ", "Equatorial Guinea"], ["ER", "Eritrea"], ["EE", "Estonia"], ["SZ", "Eswatini"], ["ET", "Ethiopia"], ["FK", "Falkland Islands (Malvinas)"], ["FO", "Faroe Islands"], ["FJ", "Fiji"], ["FI", "Finland"], ["FR", "France"], ["GF", "French Guiana"], ["PF", "French Polynesia"], ["TF", "French Southern Territories"], ["GA", "Gabon"], ["GM", "Gambia"], ["GE", "Georgia"], ["DE", "Germany"], ["GH", "Ghana"], ["GI", "Gibraltar"], ["GR", "Greece"], ["GL", "Greenland"], ["GD", "Grenada"], ["GP", "Guadeloupe"], ["GU", "Guam"], ["GT", "Guatemala"], ["GG", "Guernsey"], ["GN", "Guinea"], ["GW", "Guinea-Bissau"], ["GY", "Guyana"], ["HT", "Haiti"], ["HM", "Heard Island and McDonald Islands"], ["VA", "Holy See (Vatican City State)"], ["HN", "Honduras"], ["HK", "Hong Kong"], ["HU", "Hungary"], ["IS", "Iceland"], ["IN", "India"], ["ID", "Indonesia"], ["IR", "Iran"], ["IQ", "Iraq"], ["IE", "Ireland"], ["IM", "Isle of Man"], ["IL", "Israel"], ["IT", "Italy"], ["JM", "Jamaica"], ["JP", "Japan"], ["JE", "Jersey"], ["JO", "Jordan"], ["KZ", "Kazakhstan"], ["KE", "Kenya"], ["KI", "Kiribati"], ["KW", "Kuwait"], ["KG", "Kyrgyzstan"], ["LA", "Laos"], ["LV", "Latvia"], ["LB", "Lebanon"], ["LS", "Lesotho"], ["LR", "Liberia"], ["LY", "Libya"], ["LI", "Liechtenstein"], ["LT", "Lithuania"], ["LU", "Luxembourg"], ["MO", "Macao"], ["MG", "Madagascar"], ["MW", "Malawi"], ["MY", "Malaysia"], ["MV", "Maldives"], ["ML", "Mali"], ["MT", "Malta"], ["MH", "Marshall Islands"], ["MQ", "Martinique"], ["MR", "Mauritania"], ["MU", "Mauritius"], ["YT", "Mayotte"], ["MX", "Mexico"], ["FM", "Micronesia, Federated States of"], ["MD", "Moldova"], ["MC", "Monaco"], ["MN", "Mongolia"], ["ME", "Montenegro"], ["MS", "Montserrat"], ["MA", "Morocco"], ["MZ", "Mozambique"], ["MM", "Myanmar"], ["NA", "Namibia"], ["NR", "Nauru"], ["NP", "Nepal"], ["NL", "Netherlands"], ["NC", "New Caledonia"], ["NZ", "New Zealand"], ["NI", "Nicaragua"], ["NE", "Niger"], ["NG", "Nigeria"], ["NU", "Niue"], ["NF", "Norfolk Island"], ["KP", "North Korea"], ["MK", "North Macedonia"], ["MP", "Northern Mariana Islands"], ["NO", "Norway"], ["OM", "Oman"], ["PK", "Pakistan"], ["PW", "Palau"], ["PS", "Palestine, State of"], ["PA", "Panama"], ["PG", "Papua New Guinea"], ["PY", "Paraguay"], ["PE", "Peru"], ["PH", "Philippines"], ["PN", "Pitcairn"], ["PL", "Poland"], ["PT", "Portugal"], ["PR", "Puerto Rico"], ["QA", "Qatar"], ["RO", "Romania"], ["RU", "Russian Federation"], ["RW", "Rwanda"], ["RE", "Réunion"], ["BL", "Saint Barthélemy"], ["SH", "Saint Helena, Ascension and Tristan da Cunha"], ["KN", "Saint Kitts and Nevis"], ["LC", "Saint Lucia"], ["MF", "Saint Martin (French part)"], ["PM", "Saint Pierre and Miquelon"], ["VC", "Saint Vincent and the Grenadines"], ["WS", "Samoa"], ["SM", "San Marino"], ["ST", "Sao Tome and Principe"], ["SA", "Saudi Arabia"], ["SN", "Senegal"], ["RS", "Serbia"], ["SC", "Seychelles"], ["SL", "Sierra Leone"], ["SG", "Singapore"], ["SX", "Sint Maarten (Dutch part)"], ["SK", "Slovakia"], ["SI", "Slovenia"], ["SB", "Solomon Islands"], ["SO", "Somalia"], ["ZA", "South Africa"], ["GS", "South Georgia and the South Sandwich Islands"], ["KR", "South Korea"], ["SS", "South Sudan"], ["ES", "Spain"], ["LK", "Sri Lanka"], ["SD", "Sudan"], ["SR", "Suriname"], ["SJ", "Svalbard and Jan Mayen"], ["SE", "Sweden"], ["CH", "Switzerland"], ["SY", "Syria"], ["TW", "Taiwan"], ["TJ", "Tajikistan"], ["TZ", "Tanzania"], ["TH", "Thailand"], ["TL", "Timor-Leste"], ["TG", "Togo"], ["TK", "Tokelau"], ["TO", "Tonga"], ["TT", "Trinidad and Tobago"], ["TN", "Tunisia"], ["TM", "Turkmenistan"], ["TC", "Turks and Caicos Islands"], ["TV", "Tuvalu"], ["TR", "Türkiye"], ["UG", "Uganda"], ["UA", "Ukraine"], ["AE", "United Arab Emirates"], ["GB", "United Kingdom"], ["US", "United States"], ["UM", "United States Minor Outlying Islands"], ["UY", "Uruguay"], ["UZ", "Uzbekistan"], ["VU", "Vanuatu"], ["VE", "Venezuela"], ["VN", "Vietnam"], ["VG", "Virgin Islands, British"], ["VI", "Virgin Islands, U.S."], ["WF", "Wallis and Futuna"], ["EH", "Western Sahara"], ["YE", "Yemen"], ["ZM", "Zambia"], ["ZW", "Zimbabwe"], ["AX", "Åland Islands"]];
 const flag=c=>c&&c.length===2?String.fromCodePoint(...[...c.toUpperCase()].map(x=>127397+x.charCodeAt(0))):"";
 const cname=c=>(COUNTRIES.find(x=>x[0]===c)||[c,c||"—"])[1];
@@ -358,7 +359,7 @@ const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
  ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
  ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["games","🎲","অনলাইন গেম আয়"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
- ["APP DATA",[["rooms","🎙️","ভয়েস রুম","শীঘ্রই"],["gifts","🎁","গিফট","শীঘ্রই"],["games","🎲","গেম ডেটা","শীঘ্রই"]]],
+ ["APP DATA",[["live","🟢","লাইভ গেম"],["gifts","🎁","গিফট"],["giftinc","💝","গিফট আয়"],["rooms","🎙️","ভয়েস রুম","শীঘ্রই"]]],
 ];
 let current="dash";
 function drawNav(f=""){const q=f.toLowerCase();$("#navlist").innerHTML=NAV.map(([s,items])=>{const it=items.filter(i=>!q||i[2].toLowerCase().includes(q)||T(i[2]).toLowerCase().includes(q));if(!it.length)return"";return `<div class="sec">${s}</div>`+it.map(([k,ic,l,tag])=>`<button class="nav ${k===current?"act":""}" data-k="${k}">${ic} ${l}${tag?`<span class="tag">${tag}</span>`:""}</button>`).join("")}).join("")}
@@ -427,7 +428,7 @@ function renderUsers(docs){
 }
 async function manageUser(uid){
  const s=await getDoc(doc(db,"users",uid));const u=s.data();cache[uid]=u;
- modal(`<div class="row" style="justify-content:flex-end"><button class="btn o sm" id="clog">🪙 কয়েন হিস্টোরি</button> <button class="btn o sm" id="fullp">👤 পুরো প্রোফাইল</button></div><h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))}${vipOn(u)?` (VIP · আসল ${esc(ownId(u))})`:""}</span></h3>
+ modal(`<div class="row" style="justify-content:flex-end"><button class="btn o sm" id="clog">🪙 কয়েন হিস্টোরি</button> <button class="btn o sm" id="dlog">💎 ডায়মন্ড হিস্টোরি</button> <button class="btn o sm" id="fullp">👤 পুরো প্রোফাইল</button></div><h3 style="margin-top:0">${esc(u.name)} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))}${vipOn(u)?` (VIP · আসল ${esc(ownId(u))})`:""}</span></h3>
  <div class="muted">${esc(u.email)}</div>
  <div class="grid" style="margin:14px 0;grid-template-columns:repeat(3,1fr)"><div class="stat"><span>কয়েন</span><b>${fmt(u.coins)}</b></div><div class="stat"><span>ডায়মন্ড</span><b>${fmt(u.diamonds)}</b></div><div class="stat"><span>Locked</span><b>${fmt(u.lockedDiamonds)}</b></div></div>
  <label class="f">পরিমাণ</label><input class="inp" id="amt" inputmode="numeric" data-num placeholder="যেমন 10,000" style="width:100%">
@@ -442,6 +443,7 @@ async function manageUser(uid){
  $("#rsave").onclick=()=>saveRoles(uid);
  $("#fullp").onclick=()=>{closeM();userProfile(uid)};
  $("#clog").onclick=()=>{closeM();coinLog(uid)};
+ $("#dlog").onclick=()=>{closeM();coinLog(uid,true)};
  $("#mclose").onclick=closeM;
  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(uid,b.dataset.a));
 }
@@ -456,18 +458,19 @@ async function userAction(uid,a){
   if(!await dlg(`নিশ্চিত? ${a} ${fmt(n)} → ${u.name}`))return;
   const upd={"coin-":{coins:increment(-n)},"dia+":{diamonds:increment(n),lifetimeDiamonds:increment(n)},"dia-":{diamonds:increment(-n)}};
   const wb=writeBatch(db);wb.update(ref,{...(a==="coin+"?{coins:increment(n)}:upd[a]),updatedAt:serverTimestamp()});
+  if(a==="dia+"||a==="dia-"){const amt=a==="dia+"?n:-n;wb.set(doc(collection(db,"users",uid,"diamondLog")),{type:"admin",amount:amt,balance:(u.diamonds||0)+amt,note:why||(amt>0?"Given by LudoMeet":"Removed by LudoMeet"),by:auth.currentUser.email,at:serverTimestamp()})}
   if(a==="coin+"||a==="coin-"){const amt=a==="coin+"?n:-n;wb.set(doc(collection(db,"users",uid,"coinLog")),{type:"admin",amount:amt,balance:(u.coins||0)+amt,note:why||(amt>0?"Gift from LudoMeet":"Removed by LudoMeet"),by:auth.currentUser.email,at:serverTimestamp()})}
   await wb.commit();
   await log(a,shownId(u),{amount:n,why,name:u.name});toast("হয়ে গেছে ✓");closeM();refresh();
  }catch(e){toast("ব্যর্থ: "+e.message)}
 }
-const CLK={admin:["🎁","অ্যাডমিন"],game_stake:["🎲","অনলাইন লুডু টেবিল"],game_win:["🏆","অনলাইন লুডু জয়"],game_refund:["↩️","টেবিল ফেরত"],exchange:["💱","ডায়মন্ড এক্সচেঞ্জ"],name_fee:["🪪","নাম পরিবর্তন ফি"],shop:["🛍️","শপ"],deposit:["💳","ডিপোজিট"],offline:["🎮","অফলাইন গেম/মিশন"]};
-async function coinLog(uid){
+const CLK={gift_sent:["🎁","গিফট পাঠিয়েছে"],gift_received:["💝","গিফট পেয়েছে"],withdraw:["🏦","উইথড্র"],withdraw_back:["↩️","উইথড্র ফেরত"],admin:["🎁","অ্যাডমিন"],game_stake:["🎲","অনলাইন লুডু টেবিল"],game_win:["🏆","অনলাইন লুডু জয়"],game_refund:["↩️","টেবিল ফেরত"],exchange:["💱","ডায়মন্ড এক্সচেঞ্জ"],name_fee:["🪪","নাম পরিবর্তন ফি"],shop:["🛍️","শপ"],deposit:["💳","ডিপোজিট"],offline:["🎮","অফলাইন গেম/মিশন"]};
+async function coinLog(uid,dia){
  const u=cache[uid]||(await getDoc(doc(db,"users",uid))).data()||{};
- modal(`<h3 style="margin-top:0">🪙 কয়েন হিস্টোরি — ${esc(u.name||"")} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))} · এখন ${fmt(u.coins)}</span></h3><div class="tw" id="clist"><div class="empty">লোড হচ্ছে…</div></div><div class="row" style="margin-top:12px"><button class="btn" id="cback">ফিরে যান</button></div>`);
+ modal(`<h3 style="margin-top:0">${dia?"💎 ডায়মন্ড (পয়েন্ট) হিস্টোরি":"🪙 কয়েন হিস্টোরি"} — ${esc(u.name||"")} <span class="muted" style="font-size:14px">ID ${esc(shownId(u))} · এখন ${fmt(dia?u.diamonds:u.coins)}</span></h3><div class="tw" id="clist"><div class="empty">লোড হচ্ছে…</div></div><div class="row" style="margin-top:12px"><button class="btn" id="cback">ফিরে যান</button></div>`);
  $("#cback").onclick=()=>{closeM();manageUser(uid)};
- try{const s=await getDocs(query(collection(db,"users",uid,"coinLog"),orderBy("at","desc"),limit(300)));
-  $("#clist").innerHTML=s.empty?`<div class="empty">কোনো হিস্টোরি নেই</div>`:`<table><tr><th>সময়</th><th>ধরন</th><th>নোট</th><th>পরিমাণ</th><th>ব্যালেন্স</th></tr>${s.docs.map(d=>{const e=d.data(),k=CLK[e.type]||["•",e.type||"—"];return `<tr><td>${dt(e.at)}</td><td>${k[0]} ${esc(k[1])}${e.by?`<div class="muted" style="font-size:11px">${esc(e.by)}</div>`:""}</td><td>${esc(e.note||"")}${e.ref?`<div class="muted" style="font-size:11px">${esc(e.ref)}</div>`:""}</td><td style="color:${(e.amount||0)>=0?"#3ad07a":"#ff5f8a"};font-weight:800">${(e.amount||0)>0?"+":""}${fmt(e.amount)}</td><td>${e.balance==null?"—":fmt(e.balance)}</td></tr>`}).join("")}</table>`;
+ try{const s=await getDocs(query(collection(db,"users",uid,dia?"diamondLog":"coinLog"),orderBy("at","desc"),limit(500)));
+  $("#clist").innerHTML=s.empty?`<div class="empty">কোনো হিস্টোরি নেই</div>`:`<table><tr><th>সময়</th><th>ধরন</th><th>নোট</th><th>পরিমাণ</th><th>ব্যালেন্স</th></tr>${s.docs.map(d=>{const e=d.data(),k=CLK[e.type]||["•",e.type||"—"];return `<tr><td style="white-space:nowrap">${dts(e.at)}</td><td>${k[0]} ${esc(k[1])}${e.by?`<div class="muted" style="font-size:11px">${esc(e.by)}</div>`:""}</td><td>${esc(e.note||"")}${e.ref?`<div class="muted" style="font-size:11px">${esc(e.ref)}</div>`:""}</td><td style="color:${(e.amount||0)>=0?"#3ad07a":"#ff5f8a"};font-weight:800">${(e.amount||0)>0?"+":""}${fmt(e.amount)}</td><td>${e.balance==null?"—":fmt(e.balance)}</td></tr>`}).join("")}</table>`;
  }catch(e){$("#clist").innerHTML=`<div class="empty">লোড হয়নি: ${esc(e.message)}</div>`}
 }
 document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("[data-num]"))return;const d=t.value.replace(/[^0-9]/g,"");t.value=d?Number(d).toLocaleString("en-US"):""});
@@ -869,8 +872,84 @@ async function games(){
  }catch(e){$("#gmat").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 
+// ---------- Live games ----------
+let liveTimer=null;
+async function live(){
+ view(`<div class="grid" id="lgrid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div class="stat"><span>লোড হচ্ছে…</span><b>—</b></div></div>
+  <div class="card"><div class="ttl">এখন চলমান খেলা (ধরন অনুযায়ী)</div><div id="lmode" class="muted">—</div></div>
+  <div class="card"><div class="ttl">আজকের হিসাব (বাংলাদেশ সময়)</div><div id="ltoday" class="muted">—</div></div>
+  <div class="muted" style="font-size:12px">প্রতি ১০ সেকেন্ডে নিজে থেকে আপডেট হয়। <span id="lat"></span></div>`);
+ const draw=async()=>{
+  if(current!=="live"){clearInterval(liveTimer);return}
+  try{const l=(await getDoc(doc(db,"gameLive","now"))).data()||{};
+   const card=(t,v,c)=>`<div class="stat" style="${c?`border-color:${c}`:""}"><span>${t}</span><b>${fmt(v)}</b></div>`;
+   $("#lgrid").innerHTML=card("🟢 অ্যাপে অনলাইন (গেম সার্ভারে)",l.online)+card("🎲 চলমান খেলা",l.playing)+card("👥 এখন খেলছে (জন)",l.playersInGames)+card("⏳ রুমে অপেক্ষায়",l.waitingRooms)+card("🔎 র‍্যান্ডম খুঁজছে",l.searching);
+   $("#lmode").innerHTML=Object.entries(l.byMode||{}).map(([k,v])=>`<span class="chip">${esc(k)}: <b>${fmt(v)}</b></span>`).join(" ")||"এখন কোনো খেলা চলছে না";
+   $("#lat").textContent="শেষ আপডেট: "+dts(l.at);
+   const day=new Date(Date.now()+6*3600e3).toISOString().slice(0,10);
+   const g=(await getDoc(doc(db,"gameStats",day))).data()||{};
+   $("#ltoday").innerHTML=`আজ মোট খেলা: <b>${fmt(g.matches)}</b> · খেলোয়াড় (মোট বসেছে): <b>${fmt(g.players)}</b> · ম্যাচ ফি আয়: <b>${fmt(g.fees)}</b> · কম্পিউটার খেলা আয়: <b>${fmt(g.botIncome)}</b> · মোট আয়: <b>${fmt(g.income)}</b> কয়েন`;
+  }catch(e){$("#lgrid").innerHTML=`<div class="empty">${esc(e.message)}</div>`}};
+ clearInterval(liveTimer);await draw();liveTimer=setInterval(draw,10000);
+}
+
+// ---------- Gifts ----------
+function giftImg(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas"),S=256,k=Math.min(S/im.width,S/im.height,1);c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);let u=c.toDataURL("image/webp",0.85);if(!u.startsWith("data:image/webp"))u=c.toDataURL("image/png");res(u)};im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
+async function gifts(){
+ view(`<div class="card"><div class="row" style="justify-content:space-between"><div class="ttl" style="margin:0">গিফট তালিকা</div><button class="btn o" id="gadd">➕ নতুন গিফট</button></div>
+  <div class="muted" style="margin-top:6px">যে গিফট পাবে সে দামের <b>৮০%</b> ডায়মন্ড পাবে, বাকি <b>২০%</b> প্ল্যাটফর্মের আয়। অ্যাপে খেলার মধ্যে 🎁 বাটনে এগুলো দেখাবে।</div>
+  <div class="tw" id="glist" style="margin-top:12px"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ $("#gadd").onclick=()=>editGift(null,{});
+ try{const s=await getDocs(collection(db,"gifts"));
+  const rows=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0)||(a.price||0)-(b.price||0));
+  $("#glist").innerHTML=rows.length?`<table><tr><th>ছবি</th><th>নাম</th><th>দাম (কয়েন)</th><th>প্রাপক পাবে (ডায়মন্ড)</th><th>ক্রম</th><th>অবস্থা</th><th></th></tr>${rows.map(g=>`<tr><td>${g.image?`<img src="${g.image}" style="width:48px;height:48px;object-fit:contain">`:"🎁"}</td><td><b>${esc(g.name)}</b></td><td>${fmt(g.price)}</td><td>${fmt(Math.floor((g.price||0)*0.8))}</td><td>${g.order||0}</td><td>${g.active===false?'<span class="badge rejected">বন্ধ</span>':'<span class="badge paid">চালু</span>'}</td><td><button class="btn sm o" data-ge="${g.id}">এডিট</button> <button class="btn sm r" data-gd="${g.id}">মুছুন</button></td></tr>`).join("")}</table>`:`<div class="empty">এখনো কোনো গিফট নেই। "নতুন গিফট" চেপে যোগ করুন।</div>`;
+  document.querySelectorAll("[data-ge]").forEach(b=>b.onclick=()=>editGift(b.dataset.ge,rows.find(r=>r.id===b.dataset.ge)));
+  document.querySelectorAll("[data-gd]").forEach(b=>b.onclick=async()=>{const g=rows.find(r=>r.id===b.dataset.gd);if(!await dlg(`"${g.name}" গিফট মুছে ফেলবেন?`))return;try{await deleteDoc(doc(db,"gifts",g.id));await log("gift-delete",g.name,{});toast("মুছে ফেলা হয়েছে");gifts()}catch(e){toast("ব্যর্থ: "+e.message)}});
+ }catch(e){$("#glist").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+function editGift(id,g){
+ let img=g.image||"";
+ modal(`<h3 style="margin-top:0">${id?"গিফট এডিট":"নতুন গিফট"}</h3>
+  <div style="display:flex;gap:14px;align-items:center"><div id="gpv" style="width:96px;height:96px;border-radius:16px;background:var(--mint);display:flex;align-items:center;justify-content:center;font-size:44px">${img?`<img src="${img}" style="max-width:90px;max-height:90px">`:"🎁"}</div>
+  <label class="btn o" style="cursor:pointer">🖼️ ছবি বাছুন<input type="file" id="gfile" accept="image/*" style="display:none"></label></div>
+  <label class="f">নাম</label><input class="inp" id="gname" style="width:100%" value="${esc(g.name||"")}" placeholder="যেমন Rose">
+  <label class="f">দাম (কয়েন)</label><input class="inp" id="gprice" inputmode="numeric" data-num style="width:100%" value="${g.price?fmt(g.price):""}" placeholder="যেমন 1,000">
+  <div class="muted" id="gget" style="margin-top:6px"></div>
+  <label class="f">ক্রম (ছোট সংখ্যা আগে দেখাবে)</label><input class="inp" id="gorder" type="number" style="width:100%" value="${g.order||0}">
+  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="gact" style="width:22px;height:22px" ${g.active===false?"":"checked"}> অ্যাপে চালু</label>
+  <div class="row" style="margin-top:16px"><button class="btn g" id="gsave">সেভ করুন</button><button class="btn" id="gclose">বন্ধ</button></div>`);
+ const upd=()=>{const p=Number(($("#gprice").value||"0").replace(/[^0-9]/g,""));$("#gget").innerHTML=p?`প্রাপক পাবে <b>${fmt(Math.floor(p*0.8))}</b> ডায়মন্ড · আমাদের আয় <b>${fmt(p-Math.floor(p*0.8))}</b> কয়েন`:""};
+ $("#gprice").addEventListener("input",upd);upd();
+ $("#gfile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{img=await giftImg(f);$("#gpv").innerHTML=`<img src="${img}" style="max-width:90px;max-height:90px">`}catch(err){toast("ছবি পড়া যায়নি")}};
+ $("#gclose").onclick=closeM;
+ $("#gsave").onclick=async()=>{const name=$("#gname").value.trim(),price=Number(($("#gprice").value||"0").replace(/[^0-9]/g,""));
+  if(!name)return toast("নাম দিন");if(!(price>0))return toast("সঠিক দাম দিন");if(img.length>300000)return toast("ছবি অনেক বড়, ছোট ছবি দিন");
+  const v={name,price,order:Number($("#gorder").value)||0,active:$("#gact").checked,image:img,updatedAt:serverTimestamp()};
+  try{if(id)await setDoc(doc(db,"gifts",id),v,{merge:true});else await addDoc(collection(db,"gifts"),{...v,createdAt:serverTimestamp()});
+   await log(id?"gift-edit":"gift-add",name,{price});toast("সেভ হয়েছে ✓");closeM();gifts()}catch(e){toast("ব্যর্থ: "+e.message)}};
+}
+
+// ---------- Gift income ----------
+async function giftinc(){
+ view(`<div class="grid" id="gigrid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div class="stat"><span>লোড হচ্ছে…</span><b>—</b></div></div>
+  <div class="card"><div class="ttl">দিন অনুযায়ী (বাংলাদেশ সময়, রাত ১২টায় দিন বদলায়)</div><div class="tw" id="gidays"><div class="empty">লোড হচ্ছে…</div></div></div>
+  <div class="card"><div class="ttl">সাম্প্রতিক গিফট</div><div class="tw" id="gilog"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ try{const s=await getDocs(query(collection(db,"giftStats"),orderBy("day","desc"),limit(31)));
+  const days=s.docs.map(d=>d.data());const bd=new Date(Date.now()+6*3600e3);const today=bd.toISOString().slice(0,10);
+  const wk=new Date(bd.getTime()-6*864e5).toISOString().slice(0,10),mo=today.slice(0,8);
+  const sum=f=>days.filter(f).reduce((a,d)=>({c:a.c+(d.count||0),k:a.k+(d.coins||0),i:a.i+(d.income||0)}),{c:0,k:0,i:0});
+  const t=sum(d=>d.day===today),w=sum(d=>d.day>=wk),m=sum(d=>d.day.startsWith(mo));
+  const card=(h,x)=>`<div class="stat"><span>${h}</span><b>${fmt(x.i)}</b><div class="muted" style="font-size:12px">${fmt(x.c)} টি গিফট · ${fmt(x.k)} কয়েন</div></div>`;
+  $("#gigrid").innerHTML=card("💝 আজকের লাভ",t)+card("📅 এই সপ্তাহের লাভ (৭ দিন)",w)+card("🗓️ এই মাসের লাভ",m);
+  $("#gidays").innerHTML=days.length?`<table><tr><th>দিন</th><th>গিফট</th><th>মোট কয়েন</th><th>ইউজার পেয়েছে (ডায়মন্ড)</th><th>আমাদের আয় (২০%)</th></tr>${days.map(d=>`<tr><td><b>${d.day}</b></td><td>${fmt(d.count)}</td><td>${fmt(d.coins)}</td><td>${fmt(d.diamonds)}</td><td><b>${fmt(d.income)}</b></td></tr>`).join("")}</table>`:`<div class="empty">এখনো কোনো গিফট হয়নি</div>`;
+ }catch(e){$("#gigrid").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+ try{const s=await getDocs(query(collection(db,"giftLog"),orderBy("at","desc"),limit(100)));
+  $("#gilog").innerHTML=s.size?`<table><tr><th>সময়</th><th>কে পাঠিয়েছে</th><th>কে পেয়েছে</th><th>গিফট</th><th>দাম</th><th>ডায়মন্ড</th><th>আয়</th><th>কোথায়</th></tr>${s.docs.map(d=>{const g=d.data();return `<tr><td style="white-space:nowrap">${dts(g.at)}</td><td><b>${esc(g.fromName)}</b><div class="muted" style="font-size:12px">ID ${esc(g.fromId)}</div></td><td><b>${esc(g.toName)}</b><div class="muted" style="font-size:12px">ID ${esc(g.toId)}</div></td><td>${esc(g.gift)}</td><td>${fmt(g.price)}</td><td>${fmt(g.diamonds)}</td><td><b>${fmt(g.income)}</b></td><td style="font-size:12px">${esc(g.where||"")}</td></tr>`}).join("")}</table>`:`<div class="empty">এখনো কোনো গিফট হয়নি</div>`;
+ }catch(e){$("#gilog").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
-const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports,games};
+const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports,games,live,gifts,giftinc};
 
 // ---------- Auth ----------
 $("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};
