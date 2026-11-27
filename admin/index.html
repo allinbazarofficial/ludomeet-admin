@@ -908,6 +908,7 @@ async function apps(){
  document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{atab=b.dataset.t;apps()});
  try{const s=await getDocs(query(collection(db,"applications"),where("status","==",atab),limit(200)));
   const rows=s.docs.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0));
+  ["pending","approved","rejected"].forEach(k=>getDocs(query(collection(db,"deposits"),where("status","==",k),limit(1000))).then(q=>{const e=document.querySelector(`[data-cnt="${k}"]`);if(e)e.textContent="("+fmt(q.size)+")"}).catch(()=>{}));
   if(!rows.length){$("#alist").innerHTML=`<div class="empty">কোনো আবেদন নেই</div>`;return}
   $("#alist").innerHTML=`<table><tr><th>সময়</th><th>ইউজার</th><th>পদ</th><th>যোগাযোগ</th><th>কারণ</th><th>প্রমাণ</th><th></th></tr>${rows.map(d=>{const a=d.data();return `<tr><td>${dt(a.at)}</td><td><b>${esc(a.name)}</b><div class="muted" style="font-size:12px">ID ${esc(a.userId)} · ${esc(a.country||"")}</div></td><td><b>${esc(a.roleName)}</b>${a.deposit?`<div class="muted" style="font-size:12px">$${fmt(a.deposit)} → ${fmt(a.coins)}</div>`:""}</td><td style="max-width:180px;word-break:break-all">${esc(a.contact)}</td><td style="max-width:240px">${esc(a.reason)}${a.experience?`<div class="muted" style="font-size:12px">${esc(a.experience)}</div>`:""}${a.roomId?`<div class="muted" style="font-size:12px">Room ${esc(a.roomId)}</div>`:""}</td><td>${a.proof?`<img data-proof="${d.id}" src="data:image/jpeg;base64,${a.proof}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:zoom-in">`:"—"}</td><td>${a.status==="pending"?`<button class="btn sm g" data-ok="${d.id}">অনুমোদন</button> <button class="btn sm r" data-no="${d.id}">বাতিল</button>`:""} <button class="btn sm" data-up="${a.uid}">প্রোফাইল</button></td></tr>`}).join("")}</table>`;
   document.querySelectorAll("[data-proof]").forEach(i=>i.onclick=()=>lightbox(i.src));
@@ -964,10 +965,11 @@ async function depset(){
 // ---------- Partner deposits ----------
 let dtab="pending";
 async function deposits(){
- view(`<div class="card"><div class="chips">${[["pending","পেন্ডিং"],["approved","অনুমোদিত"],["rejected","বাতিল"]].map(([k,l])=>`<button class="chip ${k===dtab?"act":""}" data-t="${k}">${l}</button>`).join("")}<button class="chip" id="rf">⟳ রিফ্রেশ</button></div><div class="muted" style="margin-top:8px">২৪ ঘণ্টার মধ্যে নিশ্চিত করতে হবে। ২৪ ঘণ্টা পার হলে সময় লাল দেখাবে।</div></div><div class="card"><div class="tw" id="dlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ view(`<div class="card"><div class="chips">${[["pending","⏳ পেন্ডিং"],["approved","✅ অনুমোদিত"],["rejected","❌ বাতিল"]].map(([k,l])=>`<button class="chip ${k===dtab?"act":""}" data-t="${k}">${l} <span data-cnt="${k}" style="opacity:.8"></span></button>`).join("")}<button class="chip" id="rf">⟳ রিফ্রেশ</button></div><div class="muted" style="margin-top:8px">২৪ ঘণ্টার মধ্যে নিশ্চিত করতে হবে। ২৪ ঘণ্টা পার হলে সময় লাল দেখাবে।</div></div><div class="card"><div class="tw" id="dlist"><div class="empty">লোড হচ্ছে…</div></div></div>`);
  document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{dtab=b.dataset.t;deposits()});$("#rf").onclick=deposits;
  try{const s=await getDocs(query(collection(db,"deposits"),where("status","==",dtab),limit(300)));
   const rows=s.docs.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0));
+  ["pending","approved","rejected"].forEach(k=>getDocs(query(collection(db,"deposits"),where("status","==",k),limit(1000))).then(q=>{const e=document.querySelector(`[data-cnt="${k}"]`);if(e)e.textContent="("+fmt(q.size)+")"}).catch(()=>{}));
   if(!rows.length){$("#dlist").innerHTML=`<div class="empty">কোনো ডিপোজিট নেই</div>`;return}
   $("#dlist").innerHTML=`<table><tr><th>সময়</th><th>ইউজার</th><th>পদ</th><th>পরিমাণ</th><th>পদ্ধতি</th><th>প্রমাণ</th><th></th></tr>${rows.map(d=>{const a=d.data();const late=a.status==="pending"&&a.at&&(Date.now()-a.at.toMillis())>86400000;
    return `<tr><td>${dt(a.at)}<div style="font-size:12px;font-weight:800;color:${late?"#ff3d5a":"inherit"}">${a.status==="pending"?ago(a.at):(a.decidedAt?"✓ "+dt(a.decidedAt):"")}</div></td>
@@ -975,7 +977,7 @@ async function deposits(){
    <td><b>${esc(a.roleName)}</b></td><td><b>$${fmt(a.amount)}</b><div class="muted" style="font-size:12px">→ ${fmt(a.coins)} কয়েন</div></td>
    <td><b>${esc(a.method)}</b>${a.network?`<div class="muted" style="font-size:12px">${esc(a.network)}</div>`:""}<div class="muted" style="font-size:11px;word-break:break-all;max-width:160px">${esc(a.payTo||"")}</div></td>
    <td>${a.proof?`<img data-proof="${d.id}" src="data:image/jpeg;base64,${a.proof}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:zoom-in">`:"—"}</td>
-   <td>${a.status==="pending"?`<button class="btn sm g" data-ok="${d.id}">অনুমোদন</button> <button class="btn sm r" data-no="${d.id}">বাতিল</button>`:(a.reason?`<div class="muted" style="font-size:12px">${esc(a.reason)}</div>`:"")} <button class="btn sm" data-up="${a.uid}">প্রোফাইল</button></td></tr>`}).join("")}</table>`;
+   <td>${a.status==="pending"?`<button class="btn sm g" data-ok="${d.id}">অনুমোদন</button> <button class="btn sm r" data-no="${d.id}">বাতিল</button>`:(a.status==="rejected"?`<div style="font-size:12px;font-weight:800;color:#ff5a72">কারণ: ${esc((REJECT_REASONS.find(r=>r[0]===a.reason)||[a.reason,a.reason])[1]||"—")}</div><div class="muted" style="font-size:11px">${esc(a.decidedBy||"")}</div>`:`<div style="font-size:12px;font-weight:800;color:#3ddc84">অনুমোদিত</div><div class="muted" style="font-size:11px">${esc(a.decidedBy||"")}</div>`)} <button class="btn sm" data-up="${a.uid}">প্রোফাইল</button></td></tr>`}).join("")}</table>`;
   document.querySelectorAll("[data-proof]").forEach(i=>i.onclick=()=>lightbox(i.src));
   document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
   const decide=async(id,ok)=>{const a=rows.find(r=>r.id===id).data();let reason="";
@@ -1040,6 +1042,7 @@ async function reports(){
  const RS={"Abuse in party room comments":"পার্টি রুমে কমেন্টে গালাগালি","Abuse in inbox":"ইনবক্সে গালাগালি","Bad or obscene name":"খারাপ / অশ্লীল নাম","Bad or obscene photo":"খারাপ / অশ্লীল ছবি","Fraud":"প্রতারণা","Other":"অন্যান্য"};
  try{const s=await getDocs(query(collection(db,"reports"),where("status","==",rtab),limit(300)));
   const rows=s.docs.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0));
+  ["pending","approved","rejected"].forEach(k=>getDocs(query(collection(db,"deposits"),where("status","==",k),limit(1000))).then(q=>{const e=document.querySelector(`[data-cnt="${k}"]`);if(e)e.textContent="("+fmt(q.size)+")"}).catch(()=>{}));
   if(!rows.length){$("#rlist").innerHTML=`<div class="empty">কোনো রিপোর্ট নেই</div>`;return}
   $("#rlist").innerHTML=`<table><tr><th>সময়</th><th>যে রিপোর্ট করেছে</th><th>যার বিরুদ্ধে</th><th>কারণ</th><th>স্ক্রিনশট</th><th></th></tr>${rows.map(d=>{const r=d.data();return `<tr><td>${dt(r.at)}</td>
    <td><b>${esc(r.fromName)}</b><div class="muted" style="font-size:12px">ID ${esc(r.fromId)}</div></td>
