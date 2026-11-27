@@ -185,6 +185,7 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   assert.equal(store.pushes.length, 2);
   assert.equal(store.pushes[0].token, 'tok-b-0123456789012345'); assert.equal(store.pushes[0].notification.body, 'hello');
   assert.equal(store.pushes[0].android.notification.channelId, 'lm_main');
+  for (const x of store.pushes) for (const k of Object.keys(x.data)) assert.ok(!['from', 'notification', 'message_type'].includes(k) && !k.startsWith('google') && !k.startsWith('gcm'), 'FCM reserved data key ' + k);
   assert.equal(store.pushes[1].android.notification.channelId, 'lm_quiet'); assert.ok(store.pushes[1].notification.body.startsWith('2 new messages'));
   c.send({ t: 'chatPush', to: 'b' }); await new Promise(r => setTimeout(r, 100)); assert.equal(store.pushes.length, 2, 'no message from c, no push');
   a.send({ t: 'create', stake: 500, size: 2 }); const pr = await a.wait('room');

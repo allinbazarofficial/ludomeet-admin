@@ -655,7 +655,7 @@ const handlers = {
     if (chatCount.size > 50000) chatCount.clear();
     if (chatPushAt.size > 50000) chatPushAt.clear();
     if (pushRate.size > 50000) pushRate.clear();
-    await pushTo(to, { title: name, body: count > 1 ? `${count} new messages · ${body}` : body, tag: 'chat_' + uid, data: { kind: 'chat', from: uid }, quiet, ttl: 24 * 3600 });
+    await pushTo(to, { title: name, body: count > 1 ? `${count} new messages · ${body}` : body, tag: 'chat_' + uid, data: { kind: 'chat', uid }, quiet, ttl: 24 * 3600 });
   },
 
   async emoji(uid, m) {

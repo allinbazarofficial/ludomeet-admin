@@ -278,7 +278,7 @@ function firestoreStore(keyFile) {
       try {
         await admin.messaging().send({ token, ...msg });
       } catch (e) {
-        if (/not-registered|invalid-registration|invalid-argument/.test(e.code || '')) await db.collection('pushTokens').doc(token).delete().catch(() => {});
+        if (/registration-token-not-registered|invalid-registration-token/.test(e.code || '')) await db.collection('pushTokens').doc(token).delete().catch(() => {});
         throw e;
       }
     },
