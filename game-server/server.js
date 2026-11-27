@@ -74,6 +74,32 @@ function roomInfo(r) {
 const broadcast = (r, msg) => r.seats.forEach(s => !s.bot && send(s.uid, msg));
 const seatOf = (r, uid) => r.seats.find(s => s.uid === uid);
 
+// ---- Phone notifications: only chat messages, game invites and "your turn".
+// One short soft sound (the app's channel), never vibration. A second message
+// from the same person within 2 minutes comes silently.
+const recentOver = new Map(); // uid -> { msg, at }: result kept a few minutes for a player who was reconnecting
+const chatPushAt = new Map(); // 'to|from' -> time of the last sounding chat notification
+const pushRate = new Map();   // uid -> last chat push request time
+const chatCount = new Map();  // 'to|from' -> messages in the current quiet run
+async function pushTo(uid, { title, body, tag, data = {}, quiet = false, ttl = 3600 }) {
+  if (!store || !store.sendPush) return;
+  try {
+    const token = await store.pushToken(uid);
+    if (!token) return;
+    const d = {}; for (const [k, v] of Object.entries(data)) d[k] = String(v);
+    await store.sendPush(token, {
+      notification: { title, body },
+      data: d,
+      android: {
+        priority: 'high',
+        ttl: ttl * 1000,
+        collapseKey: tag,
+        notification: { channelId: quiet ? 'lm_quiet' : 'lm_main', tag, icon: 'ic_notify', color: '#7C4DFF', defaultVibrateTimings: false },
+      },
+    });
+  } catch (e) { log('push', uid, e.code || e.message); }
+}
+
 async function newRoom({ kind, stake, size, teams = false, level = null }) {
   const r = { code: await code6(), matchId: crypto.randomUUID(), kind, stake, size, teams, level, seats: [], status: 'waiting', createdAt: Date.now() };
   rooms.set(r.code, r);
@@ -185,6 +211,11 @@ function nextTurn(r) {
   const a = actorOf(r);
   const away = !a.bot && (!clients.has(a.uid) || a.goneAt);
   const wait = a.bot ? BOT_MS : away ? Math.min(TURN_MS, 3000) : TURN_MS;
+  // Left the app during the game: one "your turn" notification, until they come back.
+  if (!a.bot && (away || a.bg) && !a.turnPushed) {
+    a.turnPushed = true;
+    pushTo(a.uid, { title: '🎲 Your turn!', body: 'Come back to your Ludo game now, or you will miss your turn.', tag: 'turn_' + r.code, data: { kind: 'turn', code: r.code }, ttl: 60 });
+  }
   r.timer = setTimeout(() => safe(r, () => autoAct(r, a)), wait);
   broadcast(r, { t: 'turn', uid: r.game.turn.id, actor: a.uid, phase: r.game.dice == null ? 'roll' : 'move', ms: wait });
 }
@@ -318,7 +349,9 @@ async function finish(r) {
   try {
     await store.settle(r.seats.filter(s => s.lockId).map(s => s.lockId), p.credits, record);
   } catch (e) { log('settle failed', r.matchId, e.message); }
-  r.seats.forEach(s => !s.bot && send(s.uid, { t: 'over', code: r.code, ranking: p.ranking, credits: p.credits, stake: r.stake }));
+  const overMsg = { t: 'over', code: r.code, ranking: p.ranking, credits: p.credits, stake: r.stake, left: r.seats.filter(s => s.out && !s.bot).map(s => s.uid) };
+  r.seats.forEach(s => { if (s.bot) return; send(s.uid, overMsg); recentOver.set(s.uid, { msg: overMsg, at: Date.now() }); });
+  for (const [k, v] of recentOver) if (Date.now() - v.at > 10 * 60000) recentOver.delete(k);
   saveStatus(r, 'over');
   r.status = 'closed';
   r.seats.forEach(s => userRoom.get(s.uid) === r.code && userRoom.delete(s.uid));
@@ -459,6 +492,7 @@ const handlers = {
       if (await store.blocked(uid, to).catch(() => false)) continue;
       await store.invite(uid, to, data).catch(e => log('invite', e.message));
       send(to, { t: 'invite', ...data });
+      pushTo(to, { title: '🎲 Ludo invite', body: `${me.name} invited you to play Ludo · table ${r.stake.toLocaleString('en-US')} coins`, tag: 'invite_' + r.code, data: { kind: 'invite', code: r.code }, ttl: 60 });
       sent++;
     }
     send(uid, { t: 'invited', sent });
@@ -468,7 +502,11 @@ const handlers = {
   async active(uid) {
     const r = rooms.get(userRoom.get(uid));
     const s = r && seatOf(r, uid);
-    if (!r || !s || s.out || (r.status !== 'playing' && r.status !== 'waiting')) return send(uid, { t: 'active', none: true });
+    if (r && s && !s.out && r.status === 'finishing') return send(uid, { ...roomInfo(r), t: 'active', status: 'finishing' });
+    if (!r || !s || s.out || (r.status !== 'playing' && r.status !== 'waiting')) {
+      const last = recentOver.get(uid);
+      return send(uid, { t: 'active', none: true, ...(last && Date.now() - last.at < 10 * 60000 ? { over: last.msg } : {}) });
+    }
     send(uid, { ...roomInfo(r), t: 'active', status: r.status });
   },
 
@@ -477,7 +515,7 @@ const handlers = {
     const r = rooms.get(userRoom.get(uid));
     const s = r && seatOf(r, uid);
     if (!r || !s || s.out) throw err('NO_GAME');
-    s.goneAt = null; clearTimeout(s.grace); clearTimeout(s.awayTimer);
+    s.goneAt = null; s.bg = false; s.turnPushed = false; clearTimeout(s.grace); clearTimeout(s.awayTimer);
     if (r.status === 'playing') {
       send(uid, { ...roomInfo(r), t: 'resume', state: r.game ? r.game.state() : null });
       broadcast(r, { t: 'back', uid });
@@ -579,6 +617,47 @@ const handlers = {
     doMove(r, m.token);
   },
 
+  // The phone's notification token (sent by the app after sign-in).
+  async pushToken(uid, m) {
+    if (typeof m.token !== 'string' || m.token.length < 20 || m.token.length > 4096 || m.token.includes('/')) return;
+    await store.savePushToken(uid, m.token);
+  },
+
+  // The app went to the background (on) or came back (off) during a game.
+  async bg(uid, m) {
+    const r = rooms.get(userRoom.get(uid));
+    const s = r && seatOf(r, uid);
+    if (!s) return;
+    s.bg = m.on === true;
+    if (!s.bg) s.turnPushed = false;
+    else if (r.status === 'playing' && actorOf(r) === s && !s.turnPushed) {
+      s.turnPushed = true;
+      pushTo(uid, { title: '🎲 Your turn!', body: 'Come back to your Ludo game now, or you will miss your turn.', tag: 'turn_' + r.code, data: { kind: 'turn', code: r.code }, ttl: 60 });
+    }
+  },
+
+  // I just sent a chat message: notify the other player (text comes from the saved message).
+  async chatPush(uid, m) {
+    const to = m.to;
+    if (typeof to !== 'string' || !to || to === uid || to.length > 128) return;
+    const now = Date.now();
+    if (now - (pushRate.get(uid) || 0) < 800) return;
+    pushRate.set(uid, now);
+    const msg = await store.lastMessage(uid, to);
+    if (!msg || now - msg.at > 2 * 60000) return;
+    const name = (await store.profile(uid)).name || 'LudoMeet';
+    const body = msg.type === 'image' ? '📷 Photo' : msg.type === 'voice' ? '🎤 Voice message' : msg.type === 'game_invite' ? '🎲 Ludo game invite' : String(msg.text).slice(0, 120);
+    const key = to + '|' + uid;
+    const quiet = now - (chatPushAt.get(key) || 0) < 2 * 60000;
+    if (!quiet) { chatPushAt.set(key, now); chatCount.set(key, 0); }
+    const count = (chatCount.get(key) || 0) + 1;
+    chatCount.set(key, count);
+    if (chatCount.size > 50000) chatCount.clear();
+    if (chatPushAt.size > 50000) chatPushAt.clear();
+    if (pushRate.size > 50000) pushRate.clear();
+    await pushTo(to, { title: name, body: count > 1 ? `${count} new messages · ${body}` : body, tag: 'chat_' + uid, data: { kind: 'chat', from: uid }, quiet, ttl: 24 * 3600 });
+  },
+
   async emoji(uid, m) {
     const r = rooms.get(userRoom.get(uid));
     if (!r || typeof m.e !== 'string' || m.e.length > 16) return;
@@ -602,7 +681,7 @@ function onConnection(ws) {
         const r = rooms.get(userRoom.get(uid));
         if (r) {
           const s = seatOf(r, uid);
-          if (s) { s.goneAt = null; clearTimeout(s.grace); clearTimeout(s.awayTimer); }
+          if (s) { s.goneAt = null; s.bg = false; s.turnPushed = false; clearTimeout(s.grace); clearTimeout(s.awayTimer); }
           ws.send(JSON.stringify({ ...roomInfo(r), t: r.status === 'playing' ? 'resume' : 'room', state: r.game ? r.game.state() : null }));
           if (r.status === 'playing') { broadcast(r, { t: 'back', uid }); sendVoice(r, uid); }
         }

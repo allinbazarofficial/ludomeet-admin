@@ -50,6 +50,11 @@ function memoryStore() {
   const user = uid => { if (!users.has(uid)) users.set(uid, { coins: 100000, name: uid, userId: uid }); return users.get(uid); };
   return {
     kind: 'memory', users, locks, matches, stats, invites,
+    pushes: [], pushTokens: new Map(), chatMsgs: [],
+    async savePushToken(uid, token) { this.pushTokens.set(uid, token); },
+    async pushToken(uid) { return this.pushTokens.get(uid) || null; },
+    async sendPush(token, msg) { this.pushes.push({ token, ...msg }); },
+    async lastMessage(from, to) { return [...this.chatMsgs].reverse().find(x => x.from === from && x.to === to) || null; },
     setConfig(c) { config = { ...DEFAULTS, ...c }; },
     async verify(token) { if (!token) throw new Error('bad token'); return token; },
     async profile(uid) { const u = user(uid); return { name: u.name, photo: null, userId: u.userId }; },
@@ -253,6 +258,36 @@ function firestoreStore(keyFile) {
       b.set(msg, { from, to, type: 'game_invite', text: '', game: data, at: FV.serverTimestamp(), seen: false });
       b.set(chat, { members: chatId.split('_'), last: { type: 'game_invite', text: '', from, mid: msg.id }, updatedAt: FV.serverTimestamp(), unread: { [to]: FV.increment(1) } }, { merge: true });
       await b.commit();
+    },
+
+    // Phone notifications (Firebase Cloud Messaging). One phone = one token,
+    // kept for the account that last used it on that phone.
+    async savePushToken(uid, token) {
+      const b = db.batch();
+      b.set(db.collection('pushTokens').doc(token), { uid, at: FV.serverTimestamp() });
+      b.set(db.collection('users').doc(uid), { fcm: token }, { merge: true });
+      await b.commit();
+    },
+    async pushToken(uid) {
+      const t = (await db.collection('users').doc(uid).get()).get('fcm');
+      if (!t) return null;
+      const owner = (await db.collection('pushTokens').doc(t).get()).get('uid');
+      return owner === uid ? t : null;
+    },
+    async sendPush(token, msg) {
+      try {
+        await admin.messaging().send({ token, ...msg });
+      } catch (e) {
+        if (/not-registered|invalid-registration|invalid-argument/.test(e.code || '')) await db.collection('pushTokens').doc(token).delete().catch(() => {});
+        throw e;
+      }
+    },
+    // The newest message from one player to another (for the notification text).
+    async lastMessage(from, to) {
+      const chatId = from < to ? `${from}_${to}` : `${to}_${from}`;
+      const q = await db.collection('chats').doc(chatId).collection('messages').orderBy('at', 'desc').limit(5).get();
+      const d = q.docs.map(x => x.data()).find(x => x.from === from && x.to === to);
+      return d ? { type: d.type, text: d.text || '', at: d.at ? d.at.toMillis() : Date.now() } : null;
     },
 
     async blocked(a, b) {

@@ -114,6 +114,9 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   over = await b.wait('over', 10000);
   assert.equal(over.ranking[0], 'b'); assert.equal(over.credits[0].amount, 1800);
   assert.equal(total(), s0 - 200);
+  assert.deepEqual(over.left, ['a']);
+  // The winner who was reconnecting asks "is my game on?": gets the real result, not "stopped".
+  b.send({ t: 'active' }); let ab = await b.wait('active'); assert.equal(ab.none, true); assert.equal(ab.over.ranking[0], 'b');
   houseIncome += 200;
   console.log('leave = lose ok');
 
@@ -171,7 +174,33 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   console.log('exchange and trading ok');
   store.setConfig({});
 
-  // 10) no lock left open
+  // 10) phone notifications: chat (second one quiet), invite, your turn
+  store.pushes.length = 0;
+  a.send({ t: 'pushToken', token: 'tok-a-0123456789012345' }); b.send({ t: 'pushToken', token: 'tok-b-0123456789012345' });
+  await new Promise(r => setTimeout(r, 50));
+  store.chatMsgs.push({ from: 'a', to: 'b', type: 'text', text: 'hello', at: Date.now() });
+  a.send({ t: 'chatPush', to: 'b' }); await new Promise(r => setTimeout(r, 900));
+  store.chatMsgs.push({ from: 'a', to: 'b', type: 'image', text: '', at: Date.now() });
+  a.send({ t: 'chatPush', to: 'b' }); await new Promise(r => setTimeout(r, 100));
+  assert.equal(store.pushes.length, 2);
+  assert.equal(store.pushes[0].token, 'tok-b-0123456789012345'); assert.equal(store.pushes[0].notification.body, 'hello');
+  assert.equal(store.pushes[0].android.notification.channelId, 'lm_main');
+  assert.equal(store.pushes[1].android.notification.channelId, 'lm_quiet'); assert.ok(store.pushes[1].notification.body.startsWith('2 new messages'));
+  c.send({ t: 'chatPush', to: 'b' }); await new Promise(r => setTimeout(r, 100)); assert.equal(store.pushes.length, 2, 'no message from c, no push');
+  a.send({ t: 'create', stake: 500, size: 2 }); const pr = await a.wait('room');
+  d.send({ t: 'pushToken', token: 'tok-d-0123456789012345' }); await new Promise(r => setTimeout(r, 30));
+  a.send({ t: 'invite', to: ['b', 'd'] }); const sentInv = await a.wait('invited'); assert.equal(sentInv.sent, 1, 'blocked b gets no invite');
+  await new Promise(r => setTimeout(r, 50));
+  const ip = store.pushes.find(x => x.data.kind === 'invite'); assert.ok(ip && ip.data.code === pr.code && ip.android.ttl === 60000);
+  a.send({ t: 'leave' }); await a.wait('left');
+  a.send({ t: 'bot', stake: 500 }); await a.wait('start');
+  a.send({ t: 'bg', on: true }); await new Promise(r => setTimeout(r, 400));
+  const turns = store.pushes.filter(x => x.data.kind === 'turn' && x.token === 'tok-a-0123456789012345');
+  assert.equal(turns.length, 1, 'one "your turn" per exit');
+  a.send({ t: 'bg', on: false }); a.send({ t: 'leave' }); await a.wait('over', 10000);
+  console.log('notifications ok');
+
+  // 11) no lock left open
   assert.equal([...store.locks.values()].filter(l => l.status === 'locked').length, 0);
   console.log('ALL TESTS PASSED; daily stats', JSON.stringify(store.stats));
   conns.forEach(x => x.ws.close()); srv.stop(); process.exit(0);
