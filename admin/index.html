@@ -103,7 +103,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,onAuthStateChanged,signOut,signInWithEmailAndPassword,sendPasswordResetEmail,EmailAuthProvider,linkWithCredential,updatePassword,reauthenticateWithPopup,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,onAuthStateChanged,signOut,signInWithEmailAndPassword,sendPasswordResetEmail,sendEmailVerification,EmailAuthProvider,linkWithCredential,updatePassword,reauthenticateWithPopup,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,addDoc,query,where,orderBy,limit,startAfter,increment,serverTimestamp,writeBatch,deleteDoc,deleteField,getCountFromServer,getAggregateFromServer,sum,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={apiKey:"AIzaSyAVpp9WD1k_R9g0Fvc_oNrzeVhqd8Odns0",authDomain:"ludomeet-fcea5.firebaseapp.com",projectId:"ludomeet-fcea5",storageBucket:"ludomeet-fcea5.firebasestorage.app",messagingSenderId:"805260737667",appId:"1:805260737667:web:ed2cbb6211aeaa7e41afb6"};
@@ -1311,8 +1311,20 @@ onAuthStateChanged(auth,u=>{
  const ok=u&&ADMINS.includes((u.email||"").toLowerCase());
  if(u&&!ok){$("#lerr").textContent="এই Gmail অ্যাডমিন না: "+u.email;signOut(auth)}
  $("#login").style.display=ok?"none":"grid";$("#app").style.display=ok?"block":"none";
- if(ok){drawNav();go(current)}
+ if(ok){drawNav();go(current);verifyBar(u)}
 });
+/* Firestore lets the admin in only with a verified Gmail. If the account shows
+   as not verified (it can happen after a password was added), offer to verify. */
+function verifyBar(u){
+ document.getElementById("vbar")?.remove();
+ if(u.emailVerified)return;
+ const b=document.createElement("div");b.id="vbar";
+ b.style.cssText="margin:12px 16px 0;padding:14px;border-radius:14px;background:#fff1f1;border:1.5px solid #ff5a72;color:#7a1020;font-weight:700";
+ b.innerHTML=`⚠️ আপনার Gmail এখনো "যাচাই করা" হিসেবে দেখাচ্ছে না, তাই ইউজার ও অন্য ডেটা লোড হচ্ছে না (Missing or insufficient permissions)।<br>১) নিচের বাটন চাপুন → ২) allinbazarofficial@gmail.com-এ আসা মেইলের লিংকে ক্লিক করুন → ৩) "যাচাই করেছি" চাপুন।<div class="row" style="margin-top:10px;gap:8px"><button class="btn o" id="vsend">যাচাইয়ের মেইল পাঠান</button><button class="btn" id="vdone">যাচাই করেছি</button></div>`;
+ const v=document.getElementById("view");b.style.marginLeft=`calc(${getComputedStyle(v).marginLeft} + 16px)`;v.parentNode.insertBefore(b,v);
+ b.querySelector("#vsend").onclick=async()=>{try{await sendEmailVerification(u);toast("মেইল পাঠানো হয়েছে, Gmail দেখুন")}catch(e){toast("ব্যর্থ: "+e.message)}};
+ b.querySelector("#vdone").onclick=async()=>{try{await u.reload();await u.getIdToken(true);if(auth.currentUser.emailVerified){b.remove();toast("যাচাই হয়েছে ✓");go(current)}else toast("এখনো যাচাই হয়নি — মেইলের লিংকে ক্লিক করুন")}catch(e){toast("ব্যর্থ: "+e.message)}};
+}
 </script>
 </body>
 </html>
