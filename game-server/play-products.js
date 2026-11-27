@@ -24,6 +24,14 @@ const micros = usd => String(Math.round(Number(usd) * 1e6));
     try { return (await c.request({ url, ...opt })).data; }
     catch (e) { const d = e.response && e.response.data; throw new Error((e.response ? e.response.status + ' ' : '') + JSON.stringify(d && d.error ? d.error.message : e.message)); }
   };
+  if (process.argv[2] === 'activate') {
+    const reqs = PACKS.map(([sku]) => ({ activatePurchaseOptionRequest: { packageName: PKG, productId: sku, purchaseOptionId: 'buy' } }));
+    for (const url of [`${base}/oneTimeProducts/-/purchaseOptions:batchUpdateStates`]) {
+      try { const r = await call(url, { method: 'POST', data: { requests: reqs } }); console.log('ACTIVATED', (r.oneTimeProducts || []).length); }
+      catch (e) { console.log('FAIL activate', e.message.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)); }
+    }
+    return;
+  }
   if (process.argv[2] === 'list') {
     const r = await call(`${base}/oneTimeProducts`);
     for (const p of r.oneTimeProducts || []) console.log(p.productId, (p.purchaseOptions || []).map(o => o.purchaseOptionId + ':' + o.state).join(','));
