@@ -3,9 +3,12 @@
 set -e
 mkdir -p /var/www/ludomeet
 cp -r admin site /var/www/ludomeet/
-# Latest app for the download link (playludomeet.com/download).
-curl -fsSL -o /var/www/ludomeet/site/LudoMeet.apk.new https://github.com/allinbazarofficial/ludomeet-admin/releases/latest/download/LudoMeet.apk \
-  && mv /var/www/ludomeet/site/LudoMeet.apk.new /var/www/ludomeet/site/LudoMeet.apk || echo "APK_DOWNLOAD_SKIPPED"
+# Latest app for the download link (playludomeet.com/download): the "apk"
+# branch holds the APK in parts; join them and check the checksum.
+( set +e; rm -rf /tmp/lmapk && git clone -q --depth 1 -b apk https://github.com/allinbazarofficial/ludomeet-admin.git /tmp/lmapk \
+  && cat /tmp/lmapk/LudoMeet.apk.part* > /tmp/lmapk/LudoMeet.apk \
+  && [ "$(sha256sum /tmp/lmapk/LudoMeet.apk | cut -d' ' -f1)" = "$(cat /tmp/lmapk/LudoMeet.apk.sha256)" ] \
+  && mv /tmp/lmapk/LudoMeet.apk /var/www/ludomeet/site/LudoMeet.apk && echo "APK_OK $(cat /tmp/lmapk/VERSION)" || echo "APK_DOWNLOAD_SKIPPED" )
 
 cat > /etc/nginx/sites-available/ludomeet <<'NG'
 server {
