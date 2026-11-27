@@ -730,7 +730,11 @@ function onConnection(ws) {
 
 async function main() {
   if (SETUP) return setupServer();
-  const n = await store.recover().catch(e => { log('recover failed', e.message); return 0; });
+  // Don't let a slow database keep the server from starting (it finishes in the background).
+  const n = await Promise.race([
+    store.recover().catch(e => { log('recover failed', e.message); return 0; }),
+    new Promise(r => setTimeout(() => { log('recover slow, starting anyway'); r(0); }, 15000)),
+  ]);
   if (n) log('refunded', n, 'stakes from before restart');
   const server = http.createServer((req, res) => {
     if (req.url.endsWith('/health')) { res.end(JSON.stringify({ ok: true, rooms: rooms.size, online: clients.size, voice: fs.existsSync(AGORA_FILE) })); return; }
