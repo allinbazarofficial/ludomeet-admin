@@ -1,0 +1,293 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function n(m, k) { return m.get(k, 0); }
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email in ['allinbazarofficial@gmail.com'];
+    }
+    function isUserId(v) { return v is string && v.matches('^[1-9][0-9]{5}$'); }
+    function vipIds() { return ['111111', '222222', '333333', '444444', '555555', '666666', '777777', '888888', '999999', '123456', '234567', '345678', '456789', '654321', '765432', '876543', '987654', '100000', '200000', '300000', '400000', '500000', '600000', '700000', '800000', '900000', '121212', '131313', '151515', '181818', '191919', '202020', '232323', '525252', '585858', '686868', '520520', '521521', '168168', '888999', '666888', '999888', '100100', '200200', '500500', '123123', '112233', '778899', '808080', '909090']; }
+    function signedIn() { return request.auth != null; }
+
+    match /users/{uid} {
+      allow read, update, delete: if isAdmin();
+      allow delete: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && n(request.resource.data, 'diamonds') == 0
+        && n(request.resource.data, 'lockedDiamonds') == 0
+        && n(request.resource.data, 'lifetimeDiamonds') == 0
+        && !('userId' in request.resource.data)
+        && !('vipId' in request.resource.data)
+        && !('vipUntil' in request.resource.data)
+        && !('roles' in request.resource.data)
+        && !('level' in request.resource.data)
+        && !('levelCoins' in request.resource.data)
+        && n(request.resource.data, 'coins') == 0
+        && !('tradingCoins' in request.resource.data);
+      allow update: if signedIn() && request.auth.uid == uid
+        // Coins only ever go up on the server (games, sellers, admin); the phone may only spend.
+        && n(request.resource.data, 'coins') <= n(resource.data, 'coins')
+        && n(request.resource.data, 'tradingCoins') == n(resource.data, 'tradingCoins')
+        && n(request.resource.data, 'diamonds') <= n(resource.data, 'diamonds')
+        && n(request.resource.data, 'lockedDiamonds') >= n(resource.data, 'lockedDiamonds')
+        && n(request.resource.data, 'lifetimeDiamonds') == n(resource.data, 'lifetimeDiamonds')
+        && n(request.resource.data, 'diamonds') + n(request.resource.data, 'lockedDiamonds')
+           <= n(resource.data, 'diamonds') + n(resource.data, 'lockedDiamonds')
+        && request.resource.data.get('banned', false) == resource.data.get('banned', false)
+        && request.resource.data.get('coinSeller', false) == resource.data.get('coinSeller', false)
+        && request.resource.data.get('roles', []) == resource.data.get('roles', [])
+        && request.resource.data.get('vipId', '') == resource.data.get('vipId', '')
+        && request.resource.data.get('vipUntil', null) == resource.data.get('vipUntil', null)
+        && request.resource.data.get('level', 1) == resource.data.get('level', 1)
+        && request.resource.data.get('levelCoins', 0) == resource.data.get('levelCoins', 0)
+        && (resource.data.get('country', '') == '' || request.resource.data.get('country', '') == resource.data.get('country', ''))
+        && (resource.data.get('gender', '') == '' || request.resource.data.get('gender', '') == resource.data.get('gender', ''))
+        && (resource.data.get('birthDate', null) == null || request.resource.data.get('birthDate', null) == resource.data.get('birthDate', null))
+        && (request.resource.data.get('name', '') == resource.data.get('name', '')
+            || (request.resource.data.get('nameChangedAt', null) == request.time
+                && (resource.data.get('nameChangedAt', null) == null
+                    || resource.data.nameChangedAt < request.time - duration.value(30, 'd')
+                    || n(request.resource.data, 'coins') <= n(resource.data, 'coins') - 10000)))
+        && (request.resource.data.get('userId', '') == resource.data.get('userId', '')
+            || (!isUserId(resource.data.get('userId', ''))
+                && isUserId(request.resource.data.get('userId', ''))
+                && getAfter(/databases/$(database)/documents/ids/$(request.resource.data.userId)).data.uid == request.auth.uid))
+        && (request.resource.data.get('playerId', '') == resource.data.get('playerId', '')
+            || request.resource.data.get('playerId', '') == request.resource.data.get('userId', ''));
+    }
+
+    // Name change history, personal notices.
+    match /users/{uid}/nameChanges/{id} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if (signedIn() && request.auth.uid == uid && request.resource.data.by == 'user') || isAdmin();
+    }
+    match /users/{uid}/inbox/{id} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Fees paid to the platform (name changes).
+    match /revenue/{id} {
+      allow read: if isAdmin();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.type == 'name_change' && request.resource.data.amount == 10000;
+    }
+
+    // BD Portal applications.
+    match /applications/{id} {
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
+    // Follow lists and profile visitors.
+    match /users/{uid}/following/{other} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      allow create, update, delete: if signedIn() && request.auth.uid == uid && other != uid;
+    }
+    match /users/{uid}/followers/{other} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      allow create, update, delete: if signedIn() && request.auth.uid == other && other != uid;
+    }
+    match /users/{uid}/visited/{other} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+      allow create, update: if signedIn() && request.auth.uid == uid && other != uid;
+    }
+    match /users/{uid}/visitors/{other} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+      allow create, update: if signedIn() && request.auth.uid == other && other != uid;
+    }
+
+    // Public profile everyone can read. ID, VIP, roles and level must match the account.
+    function sameAsAccount(uid) {
+      let u = get(/databases/$(database)/documents/users/$(uid)).data;
+      let d = request.resource.data;
+      return d.get('userId', '') == u.get('userId', '')
+        && d.get('vipId', '') == u.get('vipId', '')
+        && d.get('vipUntil', null) == u.get('vipUntil', null)
+        && d.get('roles', []) == u.get('roles', [])
+        && d.get('level', 1) == u.get('level', 1)
+        && d.get('levelCoins', 0) == u.get('levelCoins', 0);
+    }
+    match /profiles/{uid}/photos/{pid} {
+      allow read: if signedIn();
+      allow create, update: if (signedIn() && request.auth.uid == uid && request.resource.data.data.size() < 400000) || isAdmin();
+      allow delete: if (signedIn() && request.auth.uid == uid) || isAdmin();
+    }
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      allow delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid && sameAsAccount(uid);
+    }
+
+    // One document per 6-digit ID, so no two people can hold the same ID.
+    match /ids/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && isUserId(id) && !(id in vipIds())
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.type == 'user'
+        && !isUserId(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('userId', ''));
+      allow write: if isAdmin();
+    }
+
+    // Online status.
+    match /presence/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Players I blocked. The blocked player may check whether they are blocked.
+    match /users/{uid}/blocked/{other} {
+      allow read: if signedIn() && (request.auth.uid == uid || request.auth.uid == other || isAdmin());
+      allow create, update, delete: if signedIn() && request.auth.uid == uid && other != uid;
+    }
+
+    // Private chats. Chat id = the two uids, sorted, joined by '_'.
+    function chatMember(chatId) { return signedIn() && request.auth.uid in chatId.split('_'); }
+    match /chats/{chatId} {
+      allow read: if isAdmin() || chatMember(chatId)
+        || (signedIn() && request.auth.uid in resource.data.members);
+      allow create, update: if chatMember(chatId)
+        && request.resource.data.members == chatId.split('_');
+    }
+    match /chats/{chatId}/messages/{mid} {
+      allow read: if isAdmin() || chatMember(chatId);
+      allow create: if chatMember(chatId)
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.to in chatId.split('_')
+        && request.resource.data.to != request.auth.uid
+        && request.resource.data.at == request.time
+        && request.resource.data.get('deletedForAll', false) == false
+        && request.resource.data.get('seen', false) == false
+        && !exists(/databases/$(database)/documents/users/$(request.resource.data.to)/blocked/$(request.auth.uid));
+      allow update: if chatMember(chatId) && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen'])
+          && resource.data.to == request.auth.uid)
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedFor'])
+          && request.resource.data.deletedFor.removeAll(resource.data.get('deletedFor', [])).hasOnly([request.auth.uid]))
+        || (resource.data.from == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedForAll', 'deletedAt'])
+          && request.resource.data.deletedForAll == true
+          && request.time < resource.data.at + duration.value(2, 'm')));
+    }
+
+    // Reports about players.
+    match /reports/{id} {
+      allow read, update: if isAdmin();
+      allow read: if signedIn() && resource.data.from == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.from == request.auth.uid
+        && request.resource.data.status == 'open';
+    }
+
+    // Partner deposits (Binance / USDT), confirmed by admin.
+    match /deposits/{id} {
+      allow read, update: if isAdmin();
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending';
+    }
+
+    // Account deletion requests (the user's own record of deleting the account).
+    match /deletionRequests/{uid} {
+      allow read: if isAdmin();
+      allow create, update: if signedIn() && request.auth.uid == uid && request.resource.data.uid == uid;
+    }
+
+    match /withdrawals/{id} {
+      allow read, update: if isAdmin();
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending' && request.resource.data.diamonds >= 100000;
+    }
+    match /config/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /adminLogs/{id} {
+      allow read, create: if isAdmin();
+    }
+    // Online games: written only by the game server (admin key).
+    match /users/{uid}/gameInvites/{id} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+    }
+    // Coin history. The phone may add only its own kinds; game and admin
+    // entries come from the server or the admin panel.
+    match /users/{uid}/coinLog/{id} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow delete: if isAdmin();
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.type in ['name_fee']);
+    }
+    match /users/{uid}/diamondLog/{id} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow delete: if isAdmin();
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.type in ['withdraw']);
+    }
+    // Gifts set up in the admin panel; everyone signed in can see them.
+    match /gifts/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /giftStats/{id} {
+      allow read: if isAdmin();
+    }
+    match /giftLog/{id} {
+      allow read: if isAdmin();
+    }
+    match /gameLive/{id} {
+      allow read: if isAdmin();
+    }
+    // Coin trading: the game server moves trading coins; the admin issues them.
+    match /users/{uid}/tradeLog/{id} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow write: if isAdmin();
+    }
+    match /sellers/{uid} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActive']);
+    }
+    match /sellers/{uid}/served/{other} {
+      allow read, write: if isAdmin();
+    }
+    match /tradeAll/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /tradeIssues/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /gameBot/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    // Room status for links and invite cards (written by the game server).
+    match /rooms/{code} {
+      allow read: if signedIn();
+    }
+    // App error reports (see lib/services/crash_log.dart); only the admin reads them.
+    match /crashes/{id} {
+      allow read, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['error', 'stack', 'where', 'version', 'platform', 'uid', 'userId', 'at'])
+        && request.resource.data.error is string && request.resource.data.error.size() <= 1000
+        && request.resource.data.stack is string && request.resource.data.stack.size() <= 4000;
+    }
+    match /matches/{id} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid in resource.data.players);
+    }
+    match /gameStats/{id} {
+      allow read: if isAdmin();
+    }
+    match /gameLocks/{id} {
+      allow read: if isAdmin();
+    }
+  }
+}
