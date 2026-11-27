@@ -8,12 +8,27 @@
 
 const crypto = require('crypto');
 
+// Roles that unlock Coins Trading.
+const SELLERS = ['primarySeller', 'normalSeller', 'beginnerSeller', 'coinSeller', 'seniorSeller', 'superSeller'];
+const err = code => Object.assign(new Error(code), { code });
+
 const DEFAULTS = {
   enabled: true,
   feePct: 10,
   stakes: [500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
   split4: [70, 30],
   botMult: { easy: 1.4, normal: 1.6, hard: 2.0 },
+  // Dice balancing: 0 off, 0.5 light, 1 medium, 1.5 strong (helps whoever is behind).
+  balanceOn: true,
+  balance: 1,
+  botBalance: true,
+  // Computer games: target computer win rate (%), payout for a win (x stake),
+  // and the income (%) under which the computer stops going easy on anyone.
+  botTarget: 60,
+  botPayout: 2,
+  botGuard: 10,
+  // Diamonds -> coins: coins given for 100,000 diamonds.
+  exchangePer100k: 90000,
   giftPct: 80, // share of a gift's price the receiver gets as diamonds
   voiceIdleSec: 60, // a silent mic turns itself off after this many seconds
 };
@@ -41,6 +56,41 @@ function memoryStore() {
     async coins(uid) { return user(uid).coins; },
     logs: [],
     async config() { return config; },
+    bot: { skill: 0.85, recent: [], games: 0, stake: 0, paid: 0 },
+    streaks: new Map(),
+    async botState() { return this.bot; },
+    async saveBotState(st) { this.bot = st; },
+    async botStreak(uid) { return this.streaks.get(uid) || 0; },
+    trades: [],
+    async exchange(uid, diamonds, toTrading) {
+      const u = user(uid); const per = config.exchangePer100k;
+      if (!(diamonds >= 10000) || (u.diamonds || 0) < diamonds) { const e = new Error('NO_DIAMONDS'); e.code = 'NO_DIAMONDS'; throw e; }
+      if (toTrading && !SELLERS.some(r => (u.roles || []).includes(r))) { const e = new Error('NOT_SELLER'); e.code = 'NOT_SELLER'; throw e; }
+      const coins = Math.floor(diamonds * per / 100000);
+      u.diamonds -= diamonds;
+      if (toTrading) u.tradingCoins = (u.tradingCoins || 0) + coins; else u.coins += coins;
+      return { coins, diamonds: u.diamonds };
+    },
+    async tradeSend(uid, toId, amount, target) {
+      const a = user(uid);
+      if (!SELLERS.some(r => (a.roles || []).includes(r))) { const e = new Error('NOT_SELLER'); e.code = 'NOT_SELLER'; throw e; }
+      const to = [...users.entries()].find(([k, v]) => v.userId === toId || k === toId);
+      if (!to || to[0] === uid) { const e = new Error('NO_USER'); e.code = 'NO_USER'; throw e; }
+      if ((a.tradingCoins || 0) < amount) { const e = new Error('NO_COINS'); e.code = 'NO_COINS'; throw e; }
+      const b = to[1];
+      if (target === 'trading' && !SELLERS.some(r => (b.roles || []).includes(r))) { const e = new Error('NOT_SELLER'); e.code = 'NOT_SELLER'; throw e; }
+      a.tradingCoins -= amount;
+      if (target === 'trading') b.tradingCoins = (b.tradingCoins || 0) + amount; else b.coins += amount;
+      this.trades.push({ from: uid, to: to[0], amount, target });
+      return { to: to[0], name: b.name, balance: a.tradingCoins };
+    },
+    async sellerSetup(uid, country, whatsapp) {
+      const u = user(uid);
+      if (!SELLERS.some(r => (u.roles || []).includes(r))) { const e = new Error('NOT_SELLER'); e.code = 'NOT_SELLER'; throw e; }
+      if (u.whatsapp) { const e = new Error('ALREADY_SET'); e.code = 'ALREADY_SET'; throw e; }
+      u.country = country; u.whatsapp = whatsapp;
+    },
+    async setBotStreak(uid, n) { this.streaks.set(uid, n); },
     async lock(uid, amount, matchId) {
       const u = user(uid);
       if (u.coins < amount) { const e = new Error('NO_COINS'); e.code = 'NO_COINS'; throw e; }
@@ -95,7 +145,7 @@ function firestoreStore(keyFile) {
   admin.initializeApp({ credential: admin.credential.cert(require(keyFile)) });
   const db = admin.firestore();
   const FV = admin.firestore.FieldValue;
-  let cache = null, cacheAt = 0;
+  let cache = null, cacheAt = 0, botCache = null;
 
   return {
     kind: 'firestore',
@@ -176,6 +226,12 @@ function firestoreStore(keyFile) {
           income: FV.increment(record.income),
           byStake: { [st]: { matches: FV.increment(1), income: FV.increment(record.income) } },
           byMode: { [record.mode]: { matches: FV.increment(1), income: FV.increment(record.income) } },
+          ...(record.mode.startsWith('bot') ? {
+            botGames: FV.increment(1),
+            botCompWins: FV.increment(record.income > 0 ? 1 : 0),
+            botStake: FV.increment(record.stake),
+            botPaid: FV.increment(record.stake - record.income),
+          } : {}),
         }, { merge: true });
       });
     },
@@ -246,6 +302,93 @@ function firestoreStore(keyFile) {
 
     // Live numbers for the admin panel, written every few seconds.
     async live(data) { await db.collection('gameLive').doc('now').set({ ...data, at: FV.serverTimestamp() }); },
+
+    // ---- computer games: shared skill and recent results (one server, cached in memory)
+    async botState() {
+      if (!botCache) botCache = { skill: 0.85, recent: [], games: 0, stake: 0, paid: 0, ...(((await db.collection('gameBot').doc('state').get()).data()) || {}) };
+      if (typeof botCache.recent === 'string') { try { botCache.recent = JSON.parse(botCache.recent); } catch { botCache.recent = []; } }
+      return botCache;
+    },
+    async saveBotState(st) {
+      botCache = st;
+      await db.collection('gameBot').doc('state').set({ skill: st.skill, games: st.games, stake: st.stake, paid: st.paid, recent: JSON.stringify(st.recent), at: FV.serverTimestamp() });
+    },
+    async botStreak(uid) { return ((await db.collection('gameBot').doc('state').collection('players').doc(uid).get()).data() || {}).streak || 0; },
+    async setBotStreak(uid, n) { await db.collection('gameBot').doc('state').collection('players').doc(uid).set({ streak: n, at: FV.serverTimestamp() }); },
+
+    // ---- diamonds -> coins (own wallet, or trading coins for a seller)
+    async exchange(uid, diamonds, toTrading) {
+      const cfg = await this.config();
+      const per = Number(cfg.exchangePer100k) || 90000;
+      return db.runTransaction(async tx => {
+        const ref = db.collection('users').doc(uid);
+        const u = (await tx.get(ref)).data() || {};
+        if (!(diamonds >= 10000) || (u.diamonds || 0) < diamonds) throw err('NO_DIAMONDS');
+        if (toTrading && !SELLERS.some(r => (u.roles || []).includes(r))) throw err('NOT_SELLER');
+        const coins = Math.floor(diamonds * per / 100000);
+        const upd = { diamonds: FV.increment(-diamonds), updatedAt: FV.serverTimestamp() };
+        if (toTrading) upd.tradingCoins = FV.increment(coins); else upd.coins = FV.increment(coins);
+        tx.update(ref, upd);
+        tx.set(ref.collection('diamondLog').doc(), { type: 'exchange', amount: -diamonds, balance: (u.diamonds || 0) - diamonds, note: `Exchanged for ${coins} ${toTrading ? 'trading ' : ''}coins`, at: FV.serverTimestamp() });
+        if (toTrading) {
+          tx.set(ref.collection('tradeLog').doc(), { kind: 'exchange', amount: coins, balance: (u.tradingCoins || 0) + coins, note: `From ${diamonds} diamonds`, at: FV.serverTimestamp() });
+          tx.set(db.collection('sellers').doc(uid), { tradingCoins: FV.increment(coins) }, { merge: true });
+        } else {
+          tx.set(ref.collection('coinLog').doc(), { type: 'exchange', amount: coins, balance: (u.coins || 0) + coins, note: `From ${diamonds} diamonds`, at: FV.serverTimestamp() });
+        }
+        return { coins, diamonds: (u.diamonds || 0) - diamonds };
+      });
+    },
+
+    // ---- a seller sends trading coins to a user's wallet or to another seller's trading coins
+    async tradeSend(uid, toId, amount, target) {
+      const id = String(toId).trim();
+      let toUid = null;
+      const idDoc = (await db.collection('ids').doc(id).get()).data();
+      if (idDoc && idDoc.uid) toUid = idDoc.uid;
+      if (!toUid) { const q = await db.collection('users').where('userId', '==', id).limit(1).get(); if (!q.empty) toUid = q.docs[0].id; }
+      if (!toUid || toUid === uid) throw err('NO_USER');
+      return db.runTransaction(async tx => {
+        const aRef = db.collection('users').doc(uid), bRef = db.collection('users').doc(toUid);
+        const servedRef = db.collection('sellers').doc(uid).collection('served').doc(toUid);
+        const [aS, bS, sv] = await Promise.all([tx.get(aRef), tx.get(bRef), tx.get(servedRef)]);
+        const a = aS.data() || {}, b = bS.data();
+        if (!b) throw err('NO_USER');
+        if (!SELLERS.some(r => (a.roles || []).includes(r))) throw err('NOT_SELLER');
+        if ((a.tradingCoins || 0) < amount) throw err('NO_COINS');
+        const toTrading = target === 'trading';
+        if (toTrading && !SELLERS.some(r => (b.roles || []).includes(r))) throw err('NOT_SELLER');
+        const aShown = (a.vipId && a.vipUntil && a.vipUntil.toMillis() > Date.now()) ? a.vipId : a.userId;
+        const bShown = (b.vipId && b.vipUntil && b.vipUntil.toMillis() > Date.now()) ? b.vipId : b.userId;
+        tx.update(aRef, { tradingCoins: FV.increment(-amount), updatedAt: FV.serverTimestamp() });
+        tx.set(aRef.collection('tradeLog').doc(), { kind: 'send', amount: -amount, balance: (a.tradingCoins || 0) - amount, to: toUid, toName: b.name || '', toId: bShown || '', target: toTrading ? 'trading' : 'wallet', at: FV.serverTimestamp() });
+        tx.set(db.collection('sellers').doc(uid), { tradingCoins: FV.increment(-amount), lastActive: FV.serverTimestamp(), ...(sv.exists ? {} : { served: FV.increment(1) }) }, { merge: true });
+        if (!sv.exists) tx.set(servedRef, { at: FV.serverTimestamp() });
+        if (toTrading) {
+          tx.update(bRef, { tradingCoins: FV.increment(amount), updatedAt: FV.serverTimestamp() });
+          tx.set(bRef.collection('tradeLog').doc(), { kind: 'receive', amount, balance: (b.tradingCoins || 0) + amount, from: uid, fromName: a.name || '', fromId: aShown || '', at: FV.serverTimestamp() });
+          tx.set(db.collection('sellers').doc(toUid), { tradingCoins: FV.increment(amount) }, { merge: true });
+        } else {
+          tx.update(bRef, { coins: FV.increment(amount), updatedAt: FV.serverTimestamp() });
+          tx.set(bRef.collection('coinLog').doc(), { type: 'seller', amount, balance: (b.coins || 0) + amount, note: `From coin seller ${a.name || ''} (ID ${aShown || ''})`, at: FV.serverTimestamp() });
+        }
+        tx.set(bRef.collection('inbox').doc(), { title: 'Coins received', body: `${a.name || 'A coin seller'} (ID ${aShown || ''}) sent you ${amount.toLocaleString('en-US')} ${toTrading ? 'trading ' : ''}coins.`, kind: 'coins', at: FV.serverTimestamp() });
+        tx.set(db.collection('tradeAll').doc(), { kind: 'send', from: uid, fromName: a.name || '', fromId: aShown || '', to: toUid, toName: b.name || '', toId: bShown || '', amount, target: toTrading ? 'trading' : 'wallet', day: bdDay(), at: FV.serverTimestamp() });
+        return { to: toUid, name: b.name || '', balance: (a.tradingCoins || 0) - amount };
+      });
+    },
+
+    // ---- first-time seller setup: country and WhatsApp number (later only the admin can change it)
+    async sellerSetup(uid, country, whatsapp) {
+      const ref = db.collection('sellers').doc(uid);
+      return db.runTransaction(async tx => {
+        const [uS, sS] = await Promise.all([tx.get(db.collection('users').doc(uid)), tx.get(ref)]);
+        const u = uS.data() || {};
+        if (!SELLERS.some(r => (u.roles || []).includes(r))) throw err('NOT_SELLER');
+        if ((sS.data() || {}).whatsapp) throw err('ALREADY_SET');
+        tx.set(ref, { uid, name: u.name || '', userId: u.userId || '', country, whatsapp, roles: u.roles || [], tradingCoins: u.tradingCoins || 0, active: true, lastActive: FV.serverTimestamp(), setupAt: FV.serverTimestamp() }, { merge: true });
+      });
+    },
   };
 }
 

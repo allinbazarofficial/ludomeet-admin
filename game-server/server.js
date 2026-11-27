@@ -156,7 +156,9 @@ async function startGame(r) {
   r.status = 'playing';
   r.seats.forEach(s => clearTimeout(s.awayTimer));
   const seats = r.seats.map((s, i) => ({ id: s.uid, team: r.teams ? i % 2 : null }));
-  r.game = new Ludo(seats, { needed: r.size === 4 && !r.teams ? 2 : 1 });
+  const cfg = await store.config();
+  const balance = cfg.balanceOn === false ? 0 : (r.kind === 'bot' && cfg.botBalance === false ? 0 : Number(cfg.balance) || 0);
+  r.game = new Ludo(seats, { needed: r.size === 4 && !r.teams ? 2 : 1, balance });
   // Players who blocked each other never hear each other.
   r.blocks = [];
   const humans = r.seats.filter(s => !s.bot);
@@ -198,7 +200,7 @@ function safe(r, fn) {
 function autoAct(r, a) {
   if (r.status !== 'playing') return;
   if (r.game.dice == null) doRoll(r, a);
-  else doMove(r, r.game.botMove(a.bot ? a.level : 'hard'));
+  else doMove(r, r.game.botMove(a.bot ? (a.skill ?? a.level) : 'hard'));
 }
 
 function doRoll(r, a) {
@@ -236,6 +238,44 @@ function forfeit(r, uid, reason) {
   nextTurn(r);
 }
 
+// ---- Computer games: aim for the target computer win rate (config botTarget, %)
+// across all players. One base skill for everyone moves slowly toward the
+// target; a player who has just lost several in a row meets a softer computer
+// next game, one who keeps winning meets a stronger one. If the recent income
+// falls under botGuard %, the softening is paused and the computer plays its best.
+async function botSkillFor(uid) {
+  const cfg = await store.config();
+  const st = await store.botState();
+  let skill = st.skill;
+  const streak = await store.botStreak(uid); // +n = n wins in a row, -n = n losses in a row
+  const recentMargin = st.stake ? (st.stake - st.paid) / st.stake * 100 : 100;
+  const guard = recentMargin < (Number(cfg.botGuard) || 10) && st.games >= 50;
+  if (!guard) {
+    if (streak <= -3) skill -= 0.3; else if (streak === -2) skill -= 0.15;
+  }
+  if (streak >= 2) skill += 0.2;
+  if (guard) skill = 1;
+  return Math.max(0.05, Math.min(1, skill));
+}
+
+async function botResult(uid, computerWon, stake, paid, cfg) {
+  const st = await store.botState();
+  const N = 300;
+  st.recent = (st.recent || []).concat([[computerWon ? 1 : 0, stake, paid]]).slice(-N);
+  st.games = st.recent.length;
+  st.stake = st.recent.reduce((a, x) => a + x[1], 0);
+  st.paid = st.recent.reduce((a, x) => a + x[2], 0);
+  const rate = st.recent.reduce((a, x) => a + x[0], 0) / st.games * 100;
+  const target = Number(cfg.botTarget) || 60;
+  if (rate < target - 2) st.skill = Math.min(1, st.skill + 0.02);
+  else if (rate > target + 2) st.skill = Math.max(0.3, st.skill - 0.02);
+  await store.saveBotState(st);
+  const prev = await store.botStreak(uid);
+  const playerWon = !computerWon;
+  const next = playerWon ? (prev > 0 ? prev + 1 : 1) : (prev < 0 ? prev - 1 : -1);
+  await store.setBotStreak(uid, next);
+}
+
 // Prize rules (fee and splits come from config/games, set in the admin panel).
 function payouts(r, cfg) {
   const ranking = r.game.ranking();
@@ -243,7 +283,7 @@ function payouts(r, cfg) {
   if (r.kind === 'bot') {
     const me = human[0];
     const won = ranking[0] === me.uid;
-    const mult = cfg.botMult[r.level] || 1.6;
+    const mult = r.level === 'auto' ? Number(cfg.botPayout) || 2 : cfg.botMult[r.level] || 1.6;
     const pay = won ? Math.floor(r.stake * mult) : 0;
     return { ranking, credits: [{ uid: me.uid, amount: pay }], fee: 0, botIncome: r.stake - pay, income: r.stake - pay };
   }
@@ -284,6 +324,7 @@ async function finish(r) {
   r.seats.forEach(s => userRoom.get(s.uid) === r.code && userRoom.delete(s.uid));
   rooms.delete(r.code);
   log('match', record.mode, record.stake, 'income', record.income);
+  if (r.kind === 'bot') botResult(r.seats.find(s => !s.bot).uid, p.income > 0, r.stake, r.stake - p.income, cfg).catch(e => log('bot stats', e.message));
 }
 
 // Updating: no new games; the old server keeps running the games already
@@ -330,7 +371,7 @@ function queueUp(uid, stake, ms = QUEUE_MS) {
 }
 
 const handlers = {
-  async config(uid) { const c = await store.config(); send(uid, { t: 'config', feePct: c.feePct, stakes: c.stakes, split4: c.split4, botMult: c.botMult, enabled: c.enabled, giftPct: c.giftPct, voiceIdleSec: c.voiceIdleSec }); },
+  async config(uid) { const c = await store.config(); send(uid, { t: 'config', feePct: c.feePct, stakes: c.stakes, split4: c.split4, botMult: c.botMult, enabled: c.enabled, giftPct: c.giftPct, voiceIdleSec: c.voiceIdleSec, botPayout: c.botPayout, exchangePer100k: c.exchangePer100k }); },
 
   // My mic on/off. Everyone at the table learns whose mic is on; phones join
   // the voice channel only while at least one mic is on.
@@ -492,11 +533,37 @@ const handlers = {
   // Play the computer. Shown clearly as a computer; payout set by level.
   async bot(uid, m) {
     busy(uid); await checkStake(m.stake);
-    const level = ['easy', 'normal', 'hard'].includes(m.level) ? m.level : 'normal';
+    // One computer that adapts its play (same rule for every player).
+    const level = 'auto';
+    const skill = await botSkillFor(uid);
     const r = await newRoom({ kind: 'bot', stake: m.stake, size: 2, level });
     try { await addSeat(r, uid); } catch (e) { rooms.delete(r.code); clearTimeout(r.expire); throw e; }
-    r.seats.push({ uid: `bot-${r.code}`, bot: true, level, name: `Computer (${level})`, userId: '' });
+    r.seats.push({ uid: `bot-${r.code}`, bot: true, level, skill, name: 'Computer', userId: '' });
     if (!(await tryStart(r))) throw err('NO_COINS');
+  },
+
+  // Diamonds -> coins (rate from the admin panel). toTrading: a seller's trading coins.
+  async exchange(uid, m) {
+    const d = Math.floor(Number(m.diamonds));
+    const res = await store.exchange(uid, d, m.trading === true);
+    send(uid, { t: 'exchanged', ...res, trading: m.trading === true });
+  },
+
+  // A coin seller sends trading coins to a user (wallet) or to another seller (trading).
+  async tradeSend(uid, m) {
+    const amount = Math.floor(Number(m.amount));
+    if (!(amount >= 1 && amount <= 1e10)) throw err('BAD_AMOUNT');
+    const res = await store.tradeSend(uid, String(m.to || ''), amount, m.target === 'trading' ? 'trading' : 'wallet');
+    send(uid, { t: 'tradeSent', amount, ...res });
+    send(res.to, { t: 'coinsReceived', amount, from: uid });
+  },
+
+  async sellerSetup(uid, m) {
+    const country = String(m.country || '').toUpperCase();
+    const wa = String(m.whatsapp || '').replace(/[^0-9+]/g, '');
+    if (!/^[A-Z]{2}$/.test(country) || !/^\+[0-9]{6,16}$/.test(wa)) throw err('BAD_INPUT');
+    await store.sellerSetup(uid, country, wa);
+    send(uid, { t: 'sellerReady' });
   },
 
   async roll(uid) {

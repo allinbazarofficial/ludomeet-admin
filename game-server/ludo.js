@@ -1,7 +1,9 @@
 'use strict';
-// Server-side Ludo rules. Same board as the app (lib/game/ludo_engine.dart),
-// but the dice are always fair: every face has the same chance. The only
-// limit is the usual one: after two sixes in a row the third roll is 1-5.
+// Server-side Ludo rules. Same board as the app (lib/game/ludo_engine.dart).
+// After two sixes in a row the third roll is 1-5. With `balance` on, the
+// same rule helps whichever player is behind (both sides alike): a player
+// stuck at home or short of sixes gets a slightly better chance of a six,
+// one far ahead a slightly smaller one. 0 = plain dice.
 
 const COLORS = ['red', 'green', 'yellow', 'blue'];
 const START = { red: 0, green: 13, yellow: 26, blue: 39 };
@@ -14,9 +16,10 @@ function makePlayer(color, seat) {
 
 class Ludo {
   // seats: [{ id, team? }] in turn order; colors are given out by seat count.
-  constructor(seats, { needed = 1, rng = Math.random } = {}) {
+  constructor(seats, { needed = 1, rng = Math.random, balance = 0 } = {}) {
     const colors = seats.length === 2 ? ['red', 'yellow'] : COLORS.slice(0, seats.length);
-    this.players = seats.map((s, i) => ({ id: s.id, color: colors[i], team: s.team ?? null, tokens: [-1, -1, -1, -1], out: false }));
+    this.players = seats.map((s, i) => ({ id: s.id, color: colors[i], team: s.team ?? null, tokens: [-1, -1, -1, -1], out: false, sixes: 0, dry: 0 }));
+    this.balance = balance;
     this.outOrder = [];
     this.current = 0;
     this.dice = null;
@@ -48,13 +51,38 @@ class Ludo {
 
   roll() {
     if (this.over || this.dice != null) throw new Error('cannot roll');
-    const v = this.sixesInRow >= 2 ? 1 + Math.floor(this.rng() * 5) : 1 + Math.floor(this.rng() * 6);
-    if (v === 6) this.sixesInRow++;
+    const p = this.turn;
+    let v;
+    if (this.sixesInRow >= 2) v = 1 + Math.floor(this.rng() * 5);
+    else if (!this.balance) v = 1 + Math.floor(this.rng() * 6);
+    else v = this.rng() < this.sixChance(p) ? 6 : 1 + Math.floor(this.rng() * 5);
+    if (v === 6) { this.sixesInRow++; p.sixes++; p.dry = 0; } else if (p.tokens.every(t => t === IN_BASE)) p.dry++;
     this.dice = v;
     const moves = this.movable();
     const by = this.turn.id;
     if (moves.length === 0) this.advance();
     return { value: v, by, moves };
+  }
+
+  score(p) { return p.tokens.reduce((s, t) => s + (t === IN_BASE ? 0 : t + 1), 0); }
+
+  // Chance of a six for p (1/6 normally), nudged toward whoever is behind.
+  sixChance(p) {
+    const k = this.balance;
+    let c = 1 / 6;
+    if (p.tokens.every(t => t === IN_BASE) && p.dry >= 3) c += 0.08 * k * (p.dry - 2);
+    const others = this.players.filter(o => o !== p && !o.out && !this.finished(o));
+    if (others.length) {
+      const avg = others.reduce((s, o) => s + o.sixes, 0) / others.length;
+      const gap = avg - p.sixes;
+      if (gap >= 2) c += 0.05 * k * (gap - 1);
+      if (gap <= -2) c -= 0.03 * k * (-gap - 1);
+      const best = Math.max(...others.map(o => this.score(o)));
+      const lead = this.score(p) - best;
+      if (lead < -40) c += 0.05 * k;
+      if (lead > 40) c -= 0.03 * k;
+    }
+    return Math.min(0.5, Math.max(0.08, c));
   }
 
   move(i) {
@@ -110,11 +138,14 @@ class Ludo {
 
   // Computer choice. level: easy = any legal move, normal = good move most of
   // the time, hard = best move by the same scoring the offline bot uses.
+  // level may also be a number 0..1: the chance of playing the best move
+  // (otherwise any legal move).
   botMove(level) {
     const opts = this.movable();
     if (opts.length === 0) return null;
     const r = this.rng();
-    if (level === 'easy' || (level === 'normal' && r < 0.3)) return opts[Math.floor(this.rng() * opts.length)];
+    if (typeof level === 'number') { if (r >= level) return opts[Math.floor(this.rng() * opts.length)]; }
+    else if (level === 'easy' || (level === 'normal' && r < 0.3)) return opts[Math.floor(this.rng() * opts.length)];
     let best = opts[0], bestScore = -Infinity;
     for (const i of opts) { const s = this.scoreMove(i, this.dice); if (s > bestScore) { bestScore = s; best = i; } }
     return best;

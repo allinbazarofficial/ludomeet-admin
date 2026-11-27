@@ -3,6 +3,10 @@
 set -e
 mkdir -p /var/www/ludomeet
 cp -r admin site /var/www/ludomeet/
+# Latest app for the download link (playludomeet.com/download).
+curl -fsSL -o /var/www/ludomeet/site/LudoMeet.apk.new https://github.com/allinbazarofficial/ludomeet-admin/releases/latest/download/LudoMeet.apk \
+  && mv /var/www/ludomeet/site/LudoMeet.apk.new /var/www/ludomeet/site/LudoMeet.apk || echo "APK_DOWNLOAD_SKIPPED"
+
 cat > /etc/nginx/sites-available/ludomeet <<'NG'
 server {
     listen 80;
@@ -28,6 +32,12 @@ server {
         proxy_read_timeout 3600s;
     }
     location ~ ^/join { try_files /join.html =404; }
+    location ~ ^/(download|get|app)/?$ { try_files /download.html =404; }
+    location = /LudoMeet.apk {
+        types { application/vnd.android.package-archive apk; }
+        add_header Content-Disposition 'attachment; filename="LudoMeet.apk"';
+        try_files /LudoMeet.apk =404;
+    }
 }
 NG
 rm -f /etc/nginx/sites-enabled/default

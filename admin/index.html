@@ -366,8 +366,8 @@ setLang(LANG);
 const NAV=[
  ["WORKSPACE",[["dash","📊","ড্যাশবোর্ড"],["users","👥","ইউজার ম্যানেজমেন্ট"],["banned","⛔","ব্যান করা ইউজার"]]],
  ["FINANCE",[["payroll","💸","Withdraw / পে-রোল"],["sellers","🏪","কয়েন সেলার"],["packages","💰","কয়েন প্যাকেজ"],["wallet","💎","ওয়ালেট রেট ও সেটিং"]]],
- ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["vip","👑","VIP আইডি"],["transfer","♻️","অ্যাকাউন্ট ফেরত"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["games","🎲","অনলাইন গেম আয়"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
- ["APP DATA",[["live","🟢","লাইভ গেম"],["crashes","🐞","অ্যাপ এরর"],["gifts","🎁","গিফট"],["giftinc","💝","গিফট আয়"],["rooms","🎙️","ভয়েস রুম","শীঘ্রই"]]],
+ ["MANAGER",[["topup","➕","কয়েন / ডায়মন্ড দিন"],["trading","🏪","কয়েন ট্রেডিং (সেলার)"],["vip","👑","VIP আইডি"],["transfer","♻️","অ্যাকাউন্ট ফেরত"],["roles","🛡️","পদ ও অনুমতি"],["apps","📨","BD আবেদন"],["deposits","🏦","পার্টনার ডিপোজিট"],["depset","⚙️","ডিপোজিট সেটিং"],["chats","💬","মেসেজ"],["reports","🚩","রিপোর্ট"],["games","🎲","অনলাইন গেম আয়"],["logs","📝","অ্যাকশন লগ"],["message","📢","সিস্টেম মেসেজ"]]],
+ ["APP DATA",[["live","🟢","লাইভ গেম"],["botgames","🤖","কম্পিউটার খেলা"],["crashes","🐞","অ্যাপ এরর"],["gifts","🎁","গিফট"],["giftinc","💝","গিফট আয়"],["rooms","🎙️","ভয়েস রুম","শীঘ্রই"]]],
 ];
 let current="dash";
 function drawNav(f=""){const q=f.toLowerCase();$("#navlist").innerHTML=NAV.map(([s,items])=>{const it=items.filter(i=>!q||i[2].toLowerCase().includes(q)||T(i[2]).toLowerCase().includes(q));if(!it.length)return"";return `<div class="sec">${s}</div>`+it.map(([k,ic,l,tag])=>`<button class="nav ${k===current?"act":""}" data-k="${k}">${ic} ${l}${tag?`<span class="tag">${tag}</span>`:""}</button>`).join("")}).join("")}
@@ -448,6 +448,83 @@ async function dashGames(){
    ${st("🟢 এখন চলমান খেলা",fmt(lv.playing)+" · "+fmt(lv.playersInGames)+" জন",0,"#9fd9be")}
   </div><div class="muted" style="margin-top:10px;font-size:12px">মোট আয় = ম্যাচ ফি + কম্পিউটার খেলা + গিফটের ২০% অংশ। বিস্তারিত: "অনলাইন গেম আয়" ও "গিফট আয়"।</div></div>`;
  }catch(e){box.innerHTML=`<div class="card empty">গেমের হিসাব লোড হয়নি: ${esc(e.message)}</div>`}
+}
+
+// ---------- Coin trading (sellers' agent accounts) ----------
+async function trading(){
+ view(`<div class="card"><div class="ttl">ট্রেডিং কয়েন দিন</div><div class="muted" style="margin-bottom:10px">সেলারের আইডি দিয়ে খুঁজুন। দেওয়া কয়েন তার এজেন্ট অ্যাকাউন্টে (Coins Trading) যাবে, নিজের কয়েনে নয়।</div>
+  <div class="row"><input class="inp" id="tq" placeholder="সেলারের আইডি বা VIP আইডি" style="flex:1"><button class="btn o" id="tgo">খুঁজুন</button></div><div id="tbox" style="margin-top:12px"></div></div>
+  <div class="card"><div class="ttl">মোট হিসাব</div><div class="grid" id="tsum"><div class="stat"><span>লোড হচ্ছে…</span><b>—</b></div></div></div>
+  <div class="card"><div class="ttl">সেলাররা</div><div class="tw" id="tsel"><div class="empty">লোড হচ্ছে…</div></div></div>
+  <div class="card"><div class="ttl">LudoMeet থেকে দেওয়া (হিস্টোরি)</div><div class="tw" id="tiss"><div class="empty">লোড হচ্ছে…</div></div></div>
+  <div class="card"><div class="ttl">সেলারদের পাঠানো কয়েন (সর্বশেষ)</div><div class="tw" id="tall"><div class="empty">লোড হচ্ছে…</div></div></div>`);
+ const find=async()=>{const q=$("#tq").value.trim();if(!q)return;const d=await findUsers(q);const box=$("#tbox");
+  if(!d.length){box.innerHTML=`<div class="empty">পাওয়া যায়নি</div>`;return}
+  const uid=d[0].id,u=d[0].data();const seller=(u.roles||[]).some(r=>SELLER_KEYS.includes(r));
+  box.innerHTML=`<div class="row" style="align-items:center"><img class="av" style="width:46px;height:46px" src="${u.photoData?"data:image/jpeg;base64,"+u.photoData:PRIVATE_LOGO}"><div><b>${esc(u.name)}</b> <span class="muted">${esc(shownId(u))}</span><div>${(u.roles||[]).map(r=>`<span class="badge role">${esc((ROLES.find(x=>x[0]===r)||[r,r])[1])}</span>`).join(" ")}</div></div><div style="margin-left:auto;text-align:right"><div class="muted">ট্রেডিং কয়েন</div><b style="font-size:22px">${fmt(u.tradingCoins)}</b></div></div>
+   ${seller?`<label class="f">পরিমাণ</label><input class="inp" id="tamt" data-num inputmode="numeric" style="width:100%" placeholder="যেমন 10,000,000">
+   <div class="chips" style="margin-top:8px">${[1e6,5e6,1e7,5e7,1e8,5e8].map(v=>`<button class="chip" data-add="${v}">+${fmt(v)}</button>`).join("")}</div>
+   <label class="f">নোট (ঐচ্ছিক)</label><input class="inp" id="tnote" style="width:100%" placeholder="যেমন: অগ্রিম, বোনাস">
+   <div class="row" style="margin-top:12px"><button class="btn g" id="tgive">+ ট্রেডিং কয়েন দিন</button><button class="btn r" id="ttake">− ট্রেডিং কয়েন কাটুন</button></div>`:`<div class="empty">এই ইউজারের কোনো সেলার পদ নেই। আগে "পদ ও অনুমতি" থেকে সেলার পদ দিন।</div>`}`;
+  if(!seller)return;
+  box.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const i=$("#tamt");i.value=fmt(Number(String(i.value).replace(/[^0-9]/g,""))+Number(b.dataset.add))});
+  const go=async sign=>{const n=Number(String($("#tamt").value).replace(/[^0-9]/g,""));if(!(n>0))return toast("পরিমাণ দিন");
+   const cur=(await getDoc(doc(db,"users",uid))).data()||{};if(sign<0&&(cur.tradingCoins||0)<n)return toast("এত ট্রেডিং কয়েন নেই");
+   if(!await dlg(`${u.name} (${shownId(u)})-কে ${sign>0?"":"থেকে "}${fmt(n)} ট্রেডিং কয়েন ${sign>0?"দেবেন":"কাটবেন"}?`))return;
+   const amt=sign*n,note=$("#tnote").value.trim();
+   try{const b=writeBatch(db);b.update(doc(db,"users",uid),{tradingCoins:increment(amt),updatedAt:serverTimestamp()});
+    b.set(doc(db,"sellers",uid),{tradingCoins:increment(amt)},{merge:true});
+    b.set(doc(collection(db,"users",uid,"tradeLog")),{kind:"issue",amount:amt,balance:(cur.tradingCoins||0)+amt,note:note||(amt>0?"From LudoMeet":"Removed by LudoMeet"),by:auth.currentUser.email,at:serverTimestamp()});
+    b.set(doc(collection(db,"tradeIssues")),{uid,name:u.name||"",userId:shownId(u),amount:amt,note,by:auth.currentUser.email,at:serverTimestamp()});
+    if(amt>0)b.set(doc(collection(db,"users",uid,"inbox")),{title:"Trading coins received",body:`LudoMeet added ${fmt(amt)} trading coins to your agent account.`,kind:"coins",at:serverTimestamp()});
+    await b.commit();await log(amt>0?"trading-give":"trading-take",shownId(u),{amount:amt,note});toast("হয়ে গেছে ✓");find();loadT()}catch(e){toast("ব্যর্থ: "+e.message)}};
+  $("#tgive").onclick=()=>go(1);$("#ttake").onclick=()=>go(-1)};
+ $("#tgo").onclick=find;$("#tq").onkeydown=e=>{if(e.key==="Enter")find()};
+ const loadT=async()=>{
+  try{const [iss,sel,all]=await Promise.all([getDocs(query(collection(db,"tradeIssues"),orderBy("at","desc"),limit(200))),getDocs(query(collection(db,"sellers"),limit(500))),getDocs(query(collection(db,"tradeAll"),orderBy("at","desc"),limit(100)))]);
+   let issued=0,inHand=0;iss.docs.forEach(d=>issued+=Number(d.data().amount)||0);
+   const sellers=sel.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.active!==false).sort((a,b)=>((b.roles||[]).includes("superSeller")-(a.roles||[]).includes("superSeller"))||((b.tradingCoins||0)-(a.tradingCoins||0)));
+   sellers.forEach(x=>inHand+=x.tradingCoins||0);
+   const st=(l,v,hl)=>`<div class="stat ${hl?"hl":""}"><span>${l}</span><b>${v}</b></div>`;
+   $("#tsum").innerHTML=st("LudoMeet থেকে দেওয়া (সর্বশেষ ২০০)",fmt(issued),1)+st("সেলারদের হাতে এখন",fmt(inHand))+st("সক্রিয় সেলার",fmt(sellers.length));
+   $("#tsel").innerHTML=sellers.length?`<table><tr><th>সেলার</th><th>পদ</th><th>দেশ</th><th>WhatsApp</th><th>ট্রেডিং কয়েন</th><th>কতজনকে</th><th>শেষ অ্যাক্টিভ</th><th></th></tr>${sellers.map(x=>`<tr><td><b>${esc(x.name)}</b><div class="muted">${esc(x.userId)}</div></td><td>${(x.roles||[]).filter(r=>SELLER_KEYS.includes(r)).map(r=>`<span class="badge role">${esc((ROLES.find(y=>y[0]===r)||[r,r])[1])}</span>`).join(" ")}</td><td>${x.country?flag(x.country)+" "+esc(cname(x.country)):"—"}</td><td>${esc(x.whatsapp||"— (সেটআপ হয়নি)")}</td><td><b>${fmt(x.tradingCoins)}</b></td><td>${fmt(x.served)}</td><td class="muted">${x.lastActive?ago(x.lastActive):"—"}</td><td><button class="btn sm" data-wa="${x.id}">✏️ WhatsApp/দেশ</button></td></tr>`).join("")}</table>`:`<div class="empty">এখনো কোনো সেলার নেই</div>`;
+   $("#tsel").querySelectorAll("[data-wa]").forEach(b=>b.onclick=async()=>{const x=sellers.find(y=>y.id===b.dataset.wa);
+    const wa=await dlgp("WhatsApp নম্বর (দেশের কোডসহ, যেমন +8801711000000)",x.whatsapp||"");if(wa==null)return;const w=wa.replace(/[^0-9+]/g,"");if(w&&!/^\+[0-9]{6,16}$/.test(w))return toast("নম্বর ঠিক নয় — + দিয়ে দেশের কোডসহ লিখুন");
+    const c=await dlgp("দেশের কোড (দুই অক্ষর, যেমন BD, IN, PK)",x.country||"");if(c==null)return;const cc=c.trim().toUpperCase();if(cc&&!/^[A-Z]{2}$/.test(cc))return toast("দেশের কোড দুই অক্ষর");
+    try{await setDoc(doc(db,"sellers",x.id),{whatsapp:w,country:cc},{merge:true});await log("seller-whatsapp",x.userId,{whatsapp:w,country:cc});toast("সেভ হয়েছে ✓");loadT()}catch(e){toast("ব্যর্থ: "+e.message)}});
+   $("#tiss").innerHTML=iss.empty?`<div class="empty">এখনো কিছু দেওয়া হয়নি</div>`:`<table><tr><th>সময়</th><th>সেলার</th><th>পরিমাণ</th><th>নোট</th><th>কে দিয়েছে</th></tr>${iss.docs.map(d=>{const x=d.data();return `<tr><td class="muted">${dts(x.at)}</td><td><b>${esc(x.name)}</b> <span class="muted">${esc(x.userId)}</span></td><td style="color:${x.amount<0?"var(--red)":"var(--green)"}"><b>${x.amount>0?"+":""}${fmt(x.amount)}</b></td><td>${esc(x.note||"")}</td><td class="muted">${esc(x.by||"")}</td></tr>`}).join("")}</table>`;
+   $("#tall").innerHTML=all.empty?`<div class="empty">এখনো কোনো ট্রান্সফার নেই</div>`:`<table><tr><th>সময়</th><th>সেলার</th><th>যাকে</th><th>পরিমাণ</th><th>কোথায়</th></tr>${all.docs.map(d=>{const x=d.data();return `<tr><td class="muted">${dts(x.at)}</td><td><b>${esc(x.fromName)}</b> <span class="muted">${esc(x.fromId)}</span></td><td><b>${esc(x.toName)}</b> <span class="muted">${esc(x.toId)}</span></td><td><b>${fmt(x.amount)}</b></td><td>${x.target==="trading"?"এজেন্ট":"ইউজার"}</td></tr>`}).join("")}</table>`;
+  }catch(e){$("#tsum").innerHTML=`<div class="empty">${esc(e.message)}</div>`}};
+ loadT();
+}
+
+// ---------- Computer games (profit and settings) ----------
+let botRange=1;
+async function botgames(){
+ view(`<div class="card"><div class="chips">${[[1,"আজ"],[3,"৭২ ঘণ্টা"],[7,"৭ দিন"],[30,"১ মাস"]].map(([k,l])=>`<button class="chip ${k===botRange?"act":""}" data-br="${k}">${l}</button>`).join("")}<button class="chip" id="brf">⟳</button></div></div>
+  <div class="card"><div class="ttl">কম্পিউটার খেলা — লাভ / লস</div><div class="grid" id="bstat"><div class="stat"><span>লোড হচ্ছে…</span><b>—</b></div></div><div class="muted" id="bnote" style="margin-top:10px;font-size:12px"></div></div>
+  <div class="card" style="max-width:640px"><div class="ttl">সেটিং</div>
+  <label class="f">লক্ষ্য: কম্পিউটার কত % খেলা জিতবে</label><input class="inp" id="btg" type="number" min="40" max="80" style="width:100%">
+  <label class="f">খেলোয়াড় জিতলে কত গুণ পাবে</label><input class="inp" id="bpo" type="number" step="0.1" min="1.1" max="3" style="width:100%">
+  <label class="f">আয় এর নিচে নামলে কম্পিউটার সবার সাথে সেরা খেলবে (%)</label><input class="inp" id="bgd" type="number" min="0" max="50" style="width:100%">
+  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:700"><input type="checkbox" id="bbal" style="width:20px;height:20px"> কম্পিউটারের খেলাতেও ছক্কার সমতা চালু</label>
+  <button class="btn o" id="bsv" style="margin-top:14px">সেভ করুন</button>
+  <div class="muted" style="margin-top:10px;font-size:12px">নিয়ম সব খেলোয়াড়ের জন্য একই। কেউ পরপর কয়েকবার হারলে পরের খেলায় কম্পিউটার একটু সহজ খেলে, কেউ বেশি জিতলে শক্ত খেলে। মোট হিসাব লক্ষ্যের দিকে নিজে নিজে ঠিক হয়।</div></div>`);
+ document.querySelectorAll("[data-br]").forEach(b=>b.onclick=()=>{botRange=Number(b.dataset.br);botgames()});$("#brf").onclick=botgames;
+ const D={botTarget:60,botPayout:2,botGuard:10,botBalance:true};let c=D;try{c={...D,...((await getDoc(doc(db,"config","games"))).data()||{})}}catch(e){}
+ $("#btg").value=c.botTarget;$("#bpo").value=c.botPayout;$("#bgd").value=c.botGuard;$("#bbal").checked=c.botBalance!==false;
+ $("#bsv").onclick=async()=>{const v={botTarget:Number($("#btg").value),botPayout:Number($("#bpo").value),botGuard:Number($("#bgd").value),botBalance:$("#bbal").checked};
+  if(!(v.botTarget>=40&&v.botTarget<=80))return toast("লক্ষ্য ৪০–৮০% দিন");if(!(v.botPayout>=1.1&&v.botPayout<=3))return toast("গুণ ১.১–৩ দিন");
+  if(!await dlg("কম্পিউটার খেলার সেটিং সেভ করবেন?"))return;try{await setDoc(doc(db,"config","games"),v,{merge:true});await log("bot-settings","config",v);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
+ try{const ids=[...Array(botRange).keys()].map(b=>new Date(Date.now()+BD_MS-b*86400000).toISOString().slice(0,10));
+  const docs=await Promise.all(ids.map(d=>getDoc(doc(db,"gameStats",d)).then(x=>x.data()||{}).catch(()=>({}))));
+  const t={g:0,w:0,s:0,p:0,inc:0};docs.forEach(x=>{t.g+=x.botGames||0;t.w+=x.botCompWins||0;t.s+=x.botStake||0;t.p+=x.botPaid||0;t.inc+=x.botIncome||0});
+  const net=t.s-t.p,st=(l,v,hl,col)=>`<div class="stat ${hl?"hl":""}"><span>${l}</span><b${col?` style="color:${col}"`:""}>${v}</b></div>`;
+  $("#bstat").innerHTML=st("মোট খেলা",fmt(t.g),1)+st("কম্পিউটার জিতেছে",fmt(t.w)+(t.g?` (${(t.w/t.g*100).toFixed(1)}%)`:""))+st("খেলোয়াড় জিতেছে",fmt(t.g-t.w)+(t.g?` (${((t.g-t.w)/t.g*100).toFixed(1)}%)`:""))
+   +st("মোট বাজি (কয়েন)",fmt(t.s))+st("খেলোয়াড়দের দেওয়া হয়েছে",fmt(t.p))+st(net>=0?"নিট লাভ (কয়েন)":"নিট লস (কয়েন)",fmt(Math.abs(net)),1,net>=0?"var(--green)":"var(--red)")+st("লাভ %",t.s?(net/t.s*100).toFixed(1)+"%":"—");
+  try{const b=(await getDoc(doc(db,"gameBot","state"))).data();if(b)$("#bnote").textContent=`সার্ভারের হিসাব (শেষ ${fmt(b.games)} খেলা): লাভ ${b.stake?((b.stake-b.paid)/b.stake*100).toFixed(1):"—"}% · কম্পিউটারের দক্ষতা ${Math.round((b.skill||0)*100)}%`}catch(e){}
+  if(!t.g)$("#bnote").textContent+=" · নতুন হিসাব নতুন সার্ভার আপডেটের পর থেকে গোনা শুরু হয়েছে।";
+ }catch(e){$("#bstat").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 
 // ---------- Users ----------
@@ -614,9 +691,11 @@ const DEF_APP={diamondsPerDollar:10000,minWithdrawDiamonds:100000,minExchangeDia
 async function wallet(){
  let c={...DEF_APP};try{const s=await getDoc(doc(db,"config","app"));if(s.exists())c={...c,...s.data()}}catch(e){}
  const f=(k,l)=>`<label class="f">${l}</label><input class="inp" style="width:100%" data-k="${k}" inputmode="numeric" data-num value="${fmt(c[k])}">`;
- view(`<div class="card" style="max-width:560px"><div class="ttl">WALLET RATES</div>${f("diamondsPerDollar","কত ডায়মন্ডে $1")}${f("minWithdrawDiamonds","সর্বনিম্ন Withdraw (ডায়মন্ড)")}${f("minExchangeDiamonds","সর্বনিম্ন Exchange (ডায়মন্ড)")}${f("exchangeCoinsPer100","১০০ ডায়মন্ডে কত কয়েন")}${f("withdrawFeePercent","Withdraw ফি (%)")}${f("bdtPerLakhDiamonds","১ লাখ ডায়মন্ড = কত টাকা (হিসাবের জন্য)")}
- <button class="btn o" id="wsave" style="margin-top:16px">সেভ</button><div class="muted" style="margin-top:10px;font-size:13px">অ্যাপের পরের আপডেটে এই রেটগুলো অ্যাপ নিজে পড়ে নেবে।</div></div>`);
- $("#wsave").onclick=async()=>{const d={};document.querySelectorAll("[data-k]").forEach(i=>d[i.dataset.k]=Number(String(i.value).replace(/[^0-9.]/g,"")));try{await setDoc(doc(db,"config","app"),{...d,updatedAt:serverTimestamp()},{merge:true});await log("wallet-rates","app",d);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
+ view(`<div class="card" style="max-width:560px"><div class="ttl">WALLET RATES</div>${f("diamondsPerDollar","কত ডায়মন্ডে $1")}${f("minWithdrawDiamonds","সর্বনিম্ন Withdraw (ডায়মন্ড)")}${f("minExchangeDiamonds","সর্বনিম্ন Exchange (ডায়মন্ড)")}<label class="f">১,০০,০০০ ডায়মন্ডে কত কয়েন (সব ইউজার ও সেলারের জন্য, সাথে সাথে কার্যকর)</label><input class="inp" style="width:100%" id="wex" inputmode="numeric" data-num>${f("withdrawFeePercent","Withdraw ফি (%)")}${f("bdtPerLakhDiamonds","১ লাখ ডায়মন্ড = কত টাকা (হিসাবের জন্য)")}
+ <button class="btn o" id="wsave" style="margin-top:16px">সেভ</button><div class="muted" style="margin-top:10px;font-size:13px">এক্সচেঞ্জ রেট সার্ভারে সেভ হয়, ৩০ সেকেন্ডের মধ্যে অ্যাপে কার্যকর।</div></div>`);
+ try{const g=(await getDoc(doc(db,"config","games"))).data()||{};$("#wex").value=fmt(g.exchangePer100k||90000)}catch(e){$("#wex").value="90,000"}
+ $("#wsave").onclick=async()=>{const d={};document.querySelectorAll("[data-k]").forEach(i=>d[i.dataset.k]=Number(String(i.value).replace(/[^0-9.]/g,"")));const ex=Number(String($("#wex").value).replace(/[^0-9]/g,""));if(!(ex>0&&ex<=100000))return toast("এক্সচেঞ্জ রেট ১–১,০০,০০০ দিন");
+  try{await setDoc(doc(db,"config","app"),{...d,updatedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,"config","games"),{exchangePer100k:ex},{merge:true});await log("wallet-rates","app",d);toast("সেভ হয়েছে ✓")}catch(e){toast("ব্যর্থ: "+e.message)}};
 }
 
 // ---------- Topup (by ID) ----------
@@ -647,10 +726,15 @@ async function setLevel(uid){
  if(!await dlg(`${u.name}-এর লেভেল Lv ${lvl(u)} থেকে Lv ${n} করবেন?`))return;
  try{const b=writeBatch(db);b.update(doc(db,"users",uid),{level:n,updatedAt:serverTimestamp()});syncProfile(b,uid,{level:n});await b.commit();
   await log("level-set",shownId(u),{from:lvl(u),to:n,name:u.name,why:$("#why")?.value||""});toast("হয়ে গেছে ✓");closeM();refresh()}catch(e){toast("ব্যর্থ: "+e.message)}}
+const SELLER_KEYS=["primarySeller","normalSeller","beginnerSeller","coinSeller","seniorSeller","superSeller"];
+/* Keep the public seller card (sellers/{uid}) in step with the user's seller tags. */
+function syncSeller(b,uid,u,roles){const seller=roles.some(r=>SELLER_KEYS.includes(r));
+ if(seller)b.set(doc(db,"sellers",uid),{uid,name:u.name||"",userId:u.userId||"",roles,active:true,...(u.country?{country:u.country}:{})},{merge:true});
+ else b.set(doc(db,"sellers",uid),{active:false,roles},{merge:true})}
 async function saveRoles(uid){
  const u=cache[uid];const roles=[...document.querySelectorAll("[data-role]")].filter(i=>i.checked).map(i=>i.dataset.role);
  if(!await dlg(`${u.name}-এর পদ সেভ করবেন?`))return;
- try{const b=writeBatch(db);b.update(doc(db,"users",uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});syncProfile(b,uid,{roles});await b.commit();
+ try{const b=writeBatch(db);b.update(doc(db,"users",uid),{roles,coinSeller:roles.includes("coinSeller"),updatedAt:serverTimestamp()});syncProfile(b,uid,{roles});syncSeller(b,uid,u,roles);await b.commit();
   await log("roles",shownId(u),{from:u.roles||[],to:roles,name:u.name});toast("সেভ হয়েছে ✓");closeM();refresh()}catch(e){toast("ব্যর্থ: "+e.message)}}
 
 // ---------- Roles ----------
@@ -884,9 +968,17 @@ async function deposits(){
    else{reason=await dlgp("বাতিলের কারণ লিখুন (ইউজার দেখবে):","Payment not found");if(reason===null)return}
    try{const b=writeBatch(db);b.update(doc(db,"deposits",id),{status:ok?"approved":"rejected",decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email,...(ok?{}:{reason})});
     if(ok){const us=await getDoc(doc(db,"users",a.uid));const r=new Set(us.data()?.roles||[]);r.add(a.role);const roles=[...r];
-     b.update(doc(db,"users",a.uid),{roles,coins:increment(Number(a.coins)||0),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles});
-     b.set(doc(collection(db,"users",a.uid,"coinLog")),{type:"deposit",amount:Number(a.coins)||0,balance:(us.data()?.coins||0)+(Number(a.coins)||0),note:`${a.roleName} · $${a.amount}`,by:auth.currentUser.email,at:serverTimestamp()})}
-    b.set(doc(collection(db,"users",a.uid,"inbox")),{title:ok?"Deposit approved":"Deposit rejected",body:ok?`Your $${a.amount} deposit was approved. You are now ${a.roleName} and ${fmt(a.coins)} coins were added to your account.`:`Your $${a.amount} deposit for ${a.roleName} was not approved. Reason: ${reason}`,kind:"deposit",at:serverTimestamp()});
+     const amt=Number(a.coins)||0,ud=us.data()||{};
+     if(SELLER_KEYS.includes(a.role)){
+      /* Coin sellers: the deposit goes to their trading coins (agent account). */
+      b.update(doc(db,"users",a.uid),{roles,tradingCoins:increment(amt),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles});syncSeller(b,a.uid,ud,roles);
+      b.set(doc(db,"sellers",a.uid),{tradingCoins:increment(amt)},{merge:true});
+      b.set(doc(collection(db,"users",a.uid,"tradeLog")),{kind:"deposit",amount:amt,balance:(ud.tradingCoins||0)+amt,note:`${a.roleName} · $${a.amount}`,by:auth.currentUser.email,at:serverTimestamp()});
+      b.set(doc(collection(db,"tradeIssues")),{uid:a.uid,name:ud.name||"",userId:ud.userId||"",amount:amt,note:`Deposit $${a.amount} · ${a.roleName}`,by:auth.currentUser.email,at:serverTimestamp()});
+     }else{
+      b.update(doc(db,"users",a.uid),{roles,coins:increment(amt),updatedAt:serverTimestamp()});syncProfile(b,a.uid,{roles});
+      b.set(doc(collection(db,"users",a.uid,"coinLog")),{type:"deposit",amount:amt,balance:(ud.coins||0)+amt,note:`${a.roleName} · $${a.amount}`,by:auth.currentUser.email,at:serverTimestamp()})}}
+    b.set(doc(collection(db,"users",a.uid,"inbox")),{title:ok?"Deposit approved":"Deposit rejected",body:ok?`Your $${a.amount} deposit was approved. You are now ${a.roleName} and ${fmt(a.coins)} ${SELLER_KEYS.includes(a.role)?"trading coins were added to your agent account (Coins Trading)":"coins were added to your account"}.`:`Your $${a.amount} deposit for ${a.roleName} was not approved. Reason: ${reason}`,kind:"deposit",at:serverTimestamp()});
     await b.commit();await log(ok?"deposit-approve":"deposit-reject",a.userId,{role:a.role,amount:a.amount,coins:a.coins,reason});toast("হয়ে গেছে ✓");deposits()}catch(e){toast("ব্যর্থ: "+e.message)}};
   document.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>decide(b.dataset.ok,true));
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>decide(b.dataset.no,false));
@@ -963,13 +1055,15 @@ async function games(){
   <label class="f">বাজির টেবিল ( | দিয়ে আলাদা করুন)</label><input class="inp" id="gst" style="width:100%">
   <label class="f">চুপ থাকলে মাইক বন্ধের সময় (সেকেন্ড)</label><input class="inp" id="gvi" type="number" min="10" max="600" style="width:100%">
   <label class="f">গিফটে প্রাপক পাবে (% ডায়মন্ড)</label><input class="inp" id="ggp" type="number" min="0" max="100" style="width:100%">
+  <label style="display:flex;gap:10px;align-items:center;margin-top:14px;font-weight:800"><input type="checkbox" id="gbon" style="width:22px;height:22px"> ছক্কার সমতা চালু (যে পিছিয়ে, সে একটু সুযোগ পায় — দুই পক্ষে সমান)</label>
+  <label class="f">সমতার মাত্রা</label><select class="inp" id="gbal" style="width:100%"><option value="0.5">হালকা</option><option value="1">মাঝারি</option><option value="1.5">বেশি</option></select>
   <button class="btn o" id="gsv" style="margin-top:14px">সেভ করুন</button></div>`);
- const D={enabled:true,feePct:10,split4:[70,30],botMult:{easy:1.4,normal:1.6,hard:2.0},stakes:[500,1000,5000,10000,50000,100000,500000,1000000],voiceIdleSec:60,giftPct:80};
+ const D={enabled:true,feePct:10,split4:[70,30],botMult:{easy:1.4,normal:1.6,hard:2.0},stakes:[500,1000,5000,10000,50000,100000,500000,1000000],voiceIdleSec:60,giftPct:80,balanceOn:true,balance:1};
  let c=D;try{const g=(await getDoc(doc(db,"config","games"))).data()||{};c={...D,...g,botMult:{...D.botMult,...(g.botMult||{})}}}catch(e){}
  $("#gon").checked=c.enabled!==false;$("#gfee").value=c.feePct;$("#gs1").value=c.split4[0];$("#gs2").value=c.split4[1];
- $("#gbe").value=c.botMult.easy;$("#gbn").value=c.botMult.normal;$("#gbh").value=c.botMult.hard;$("#gst").value=c.stakes.map(fmt).join("  |  ");$("#gvi").value=c.voiceIdleSec;$("#ggp").value=c.giftPct;
+ $("#gbe").value=c.botMult.easy;$("#gbn").value=c.botMult.normal;$("#gbh").value=c.botMult.hard;$("#gst").value=c.stakes.map(fmt).join("  |  ");$("#gvi").value=c.voiceIdleSec;$("#ggp").value=c.giftPct;$("#gbon").checked=c.balanceOn!==false;$("#gbal").value=String(c.balance);
  $("#gsv").onclick=async()=>{const n=x=>Number($(x).value);
-  const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split("|").map(x=>parseInt(x.replace(/[^0-9]/g,""))).filter(x=>x>0),voiceIdleSec:n("#gvi"),giftPct:n("#ggp")};
+  const v={enabled:$("#gon").checked,feePct:n("#gfee"),split4:[n("#gs1"),n("#gs2")],botMult:{easy:n("#gbe"),normal:n("#gbn"),hard:n("#gbh")},stakes:$("#gst").value.split("|").map(x=>parseInt(x.replace(/[^0-9]/g,""))).filter(x=>x>0),voiceIdleSec:n("#gvi"),giftPct:n("#ggp"),balanceOn:$("#gbon").checked,balance:Number($("#gbal").value)};
   if(!(v.voiceIdleSec>=10&&v.voiceIdleSec<=600))return toast("মাইক বন্ধের সময় ১০–৬০০ সেকেন্ড দিন");
   if(!(v.giftPct>=0&&v.giftPct<=100))return toast("গিফটের ভাগ ০–১০০% দিন");
   if(v.split4[0]+v.split4[1]!==100)return toast("৪ জনের ভাগ মিলে ১০০ হতে হবে");
@@ -1168,7 +1262,7 @@ async function crashes(){
  }catch(e){$("#crl").innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 function soon(){view(`<div class="card empty" style="padding:60px">🚧 এই সেকশন অনলাইন আপডেটের (ভয়েস রুম, গিফট, অনলাইন গেম) সাথে চালু হবে।</div>`)}
-const PAGES={dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports,games,live,gifts,giftinc,transfer,crashes};
+const PAGES={trading,botgames,dash,users,banned,payroll,sellers,packages,wallet,topup,logs,message,vip,roles,apps,deposits,depset,chats,reports,games,live,gifts,giftinc,transfer,crashes};
 
 // ---------- Auth ----------
 $("#gin").onclick=async()=>{$("#lerr").textContent="";try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$("#lerr").textContent="লগইন হয়নি: "+e.code}};

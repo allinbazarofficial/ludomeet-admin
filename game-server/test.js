@@ -155,7 +155,23 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   a.send({ t: 'active' }); act = await a.wait('active'); assert.equal(act.none, true);
   console.log('return to game ok');
 
-  // 9) no lock left open
+  // 9) exchange and coin trading
+  store.users.get('a').diamonds = 200000; store.setConfig({ exchangePer100k: 90000 });
+  a.send({ t: 'exchange', diamonds: 100000 }); let ex = await a.wait('exchanged'); assert.equal(ex.coins, 90000); assert.equal(store.users.get('a').diamonds, 100000);
+  a.send({ t: 'exchange', diamonds: 100000, trading: true }); e = await a.wait('error'); assert.equal(e.code, 'NOT_SELLER');
+  store.users.get('a').roles = ['coinSeller']; store.users.get('a').tradingCoins = 500000;
+  const bCoins = store.users.get('b').coins;
+  a.send({ t: 'tradeSend', to: store.users.get('b').userId, amount: 100000 }); let ts = await a.wait('tradeSent'); assert.equal(ts.balance, 400000);
+  assert.equal(store.users.get('b').coins, bCoins + 100000); await b.wait('coinsReceived');
+  a.send({ t: 'tradeSend', to: store.users.get('b').userId, amount: 1000, target: 'trading' }); e = await a.wait('error'); assert.equal(e.code, 'NOT_SELLER');
+  a.send({ t: 'tradeSend', to: store.users.get('b').userId, amount: 9999999 }); e = await a.wait('error'); assert.equal(e.code, 'NO_COINS');
+  b.send({ t: 'tradeSend', to: 'a', amount: 10 }); e = await b.wait('error'); assert.equal(e.code, 'NOT_SELLER');
+  a.send({ t: 'sellerSetup', country: 'BD', whatsapp: '+8801711000000' }); await a.wait('sellerReady');
+  a.send({ t: 'sellerSetup', country: 'BD', whatsapp: '+8801711000001' }); e = await a.wait('error'); assert.equal(e.code, 'ALREADY_SET');
+  console.log('exchange and trading ok');
+  store.setConfig({});
+
+  // 10) no lock left open
   assert.equal([...store.locks.values()].filter(l => l.status === 'locked').length, 0);
   console.log('ALL TESTS PASSED; daily stats', JSON.stringify(store.stats));
   conns.forEach(x => x.ws.close()); srv.stop(); process.exit(0);
