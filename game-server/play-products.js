@@ -25,7 +25,7 @@ const micros = usd => String(Math.round(Number(usd) * 1e6));
     catch (e) { const d = e.response && e.response.data; throw new Error((e.response ? e.response.status + ' ' : '') + JSON.stringify(d && d.error ? d.error.message : e.message)); }
   };
   if (process.argv[2] === 'list') {
-    const r = await call(`${base}/onetimeproducts`);
+    const r = await call(`${base}/oneTimeProducts`);
     for (const p of r.oneTimeProducts || []) console.log(p.productId, (p.purchaseOptions || []).map(o => o.purchaseOptionId + ':' + o.state).join(','));
     if (!(r.oneTimeProducts || []).length) console.log('NO_PRODUCTS');
     return;
@@ -51,11 +51,11 @@ const micros = usd => String(Math.round(Number(usd) * 1e6));
         }],
       };
       const q = `updateMask=listings,purchaseOptions&allowMissing=true&regionsVersion.version=${encodeURIComponent(version)}`;
-      await call(`${base}/onetimeproducts/${sku}?${q}`, { method: 'PATCH', data: body });
-      await call(`${base}/onetimeproducts/${sku}/purchaseOptions:batchUpdateStates`, { method: 'POST',
+      await call(`${base}/oneTimeProducts/${sku}?${q}`, { method: 'PATCH', data: body });
+      await call(`${base}/oneTimeProducts/${sku}/purchaseOptions:batchUpdateStates`, { method: 'POST',
         data: { requests: [{ activatePurchaseOptionRequest: { packageName: PKG, productId: sku, purchaseOptionId: 'buy' } }] } });
       console.log('OK', sku, '$' + usd, configs.length + ' countries'); ok++;
-    } catch (e) { console.log('FAIL', sku, e.message.slice(0, 300)); }
+    } catch (e) { console.log('FAIL', sku, e.message.slice(0, 160)); }
   }
   console.log(ok === PACKS.length ? 'ALL_PRODUCTS_OK' : `DONE ${ok}/${PACKS.length}`);
 })().catch(e => { console.log('ERROR', e.message); process.exit(1); });
