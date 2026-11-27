@@ -953,7 +953,15 @@ async function depset(){
   <label class="f">Binance নাম</label><input class="inp" id="dsm" style="width:100%">
   <button class="btn o" id="dss" style="margin-top:14px">সেভ করুন</button></div>
   <div class="card" style="max-width:640px"><div class="ttl">উত্তোলন ও ডিপোজিট</div><div class="muted">বন্ধ থাকলে অ্যাপে ডায়মন্ড উত্তোলন (Payroll) আর পার্টনার ডিপোজিট দেখাবে না। ডায়মন্ড → কয়েন এক্সচেঞ্জ সবসময় চালু থাকে।</div>
-  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="mf" style="width:22px;height:22px"> উত্তোলন ও ডিপোজিট চালু</label></div>`);
+  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="mf" style="width:22px;height:22px"> উত্তোলন ও ডিপোজিট চালু</label></div>
+  <div class="card" style="max-width:640px"><div class="ttl">Play Store সুইচ</div><div class="muted">Play Store রিভিউয়ের সময় এই দুটো বন্ধ রাখুন। রিলিজের পরে চালু করবেন। বদলালে সাথে সাথে সবার অ্যাপে বদলে যায় (অ্যাপ ভার্সন 1.16.3 বা নতুন)।</div>
+  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="swcs" style="width:22px;height:22px"> কয়েন সেলার চালু <span class="muted" style="font-weight:400">— Coin Seller বাটন, শপে "Contact Coin Seller"</span></label>
+  <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:800"><input type="checkbox" id="swct" style="width:22px;height:22px"> Binance / USDT টপ-আপ চালু <span class="muted" style="font-weight:400">— কয়েন সেলার হওয়া, ট্রেডিং কয়েন টপ-আপ, পার্টনার ডিপোজিট</span></label></div>`);
+ const SW={swcs:["coinSellers","কয়েন সেলার"],swct:["cryptoTopup","Binance / USDT টপ-আপ"]};
+ try{const a=(await getDoc(doc(db,"config","app"))).data()||{};for(const id in SW)$("#"+id).checked=a[SW[id][0]]===true}catch(e){}
+ for(const id in SW)$("#"+id).onchange=async e=>{const on=e.target.checked,[key,name]=SW[id];
+  if(!await dlg(`অ্যাপে ${name} ${on?"চালু":"বন্ধ"} করবেন?`)){e.target.checked=!on;return}
+  try{await setDoc(doc(db,"config","app"),{[key]:on},{merge:true});await log("switch-"+key,"config",{on});toast("সেভ হয়েছে ✓")}catch(err){toast("ব্যর্থ: "+err.message);e.target.checked=!on}};
  try{const a=(await getDoc(doc(db,"config","app"))).data()||{};$("#mf").checked=a.moneyFeatures===true}catch(e){}
  $("#mf").onchange=async e=>{const on=e.target.checked;if(!await dlg(on?"অ্যাপে উত্তোলন ও ডিপোজিট চালু করবেন?":"অ্যাপে উত্তোলন ও ডিপোজিট বন্ধ করবেন?")){e.target.checked=!on;return}
   try{await setDoc(doc(db,"config","app"),{moneyFeatures:on},{merge:true});await log("money-features","config",{on});toast("সেভ হয়েছে ✓")}catch(err){toast("ব্যর্থ: "+err.message);e.target.checked=!on}};
