@@ -25,25 +25,37 @@ const micros = usd => String(Math.round(Number(usd) * 1e6));
     catch (e) { const d = e.response && e.response.data; throw new Error((e.response ? e.response.status + ' ' : '') + JSON.stringify(d && d.error ? d.error.message : e.message)); }
   };
   if (process.argv[2] === 'list') {
-    const r = await call(`${base}/inappproducts`);
-    for (const p of r.inappproduct || []) console.log(p.sku, p.status, p.defaultPrice && (p.defaultPrice.priceMicros / 1e6 + ' ' + p.defaultPrice.currency));
-    if (!(r.inappproduct || []).length) console.log('NO_PRODUCTS');
+    const r = await call(`${base}/onetimeproducts`);
+    for (const p of r.oneTimeProducts || []) console.log(p.productId, (p.purchaseOptions || []).map(o => o.purchaseOptionId + ':' + o.state).join(','));
+    if (!(r.oneTimeProducts || []).length) console.log('NO_PRODUCTS');
     return;
   }
+  const money = usd => { const [u, f = '0'] = usd.split('.'); return { currencyCode: 'USD', units: u, nanos: Number((f + '000000000').slice(0, 9)) }; };
   let ok = 0;
   for (const [sku, coins, bonus, usd] of PACKS) {
-    const body = {
-      packageName: PKG, sku, status: 'active', purchaseType: 'managedUser', defaultLanguage: 'en-US',
-      defaultPrice: { priceMicros: micros(usd), currency: 'USD' },
-      listings: { 'en-US': {
-        title: `${fmt(coins)} Coins + ${fmt(bonus)} Bonus`,
-        description: `${fmt(coins)} LudoMeet coins plus ${fmt(bonus)} bonus coins. Use them for Ludo tables and gifts in voice rooms.`,
-      } },
-    };
     try {
-      await call(`${base}/inappproducts/${sku}?autoConvertMissingPrices=true&allowMissing=true`, { method: 'PUT', data: body });
-      console.log('OK', sku, '$' + usd); ok++;
-    } catch (e) { console.log('FAIL', sku, e.message); }
+      // Google turns the USD price into a local price for every country.
+      const conv = await call(`${base}/pricing:convertRegionPrices`, { method: 'POST', data: { price: money(usd) } });
+      const version = conv.regionVersion && conv.regionVersion.version;
+      const configs = Object.values(conv.convertedRegionPrices || {}).map(r => ({ regionCode: r.regionCode, price: r.price, availability: 'AVAILABLE' }));
+      const other = conv.convertedOtherRegionsPrice || {};
+      const body = {
+        packageName: PKG, productId: sku,
+        listings: [{ languageCode: 'en-US', title: `${fmt(coins)} Coins + ${fmt(bonus)} Bonus`,
+          description: `${fmt(coins)} LudoMeet coins plus ${fmt(bonus)} bonus coins. Use them for Ludo tables and gifts in voice rooms.` }],
+        purchaseOptions: [{
+          purchaseOptionId: 'buy',
+          buyOption: { legacyCompatible: true, multiQuantityEnabled: false },
+          regionalPricingAndAvailabilityConfigs: configs,
+          ...(other.usdPrice ? { newRegionsConfig: { usdPrice: other.usdPrice, eurPrice: other.eurPrice, availability: 'AVAILABLE' } } : {}),
+        }],
+      };
+      const q = `updateMask=listings,purchaseOptions&allowMissing=true&regionsVersion.version=${encodeURIComponent(version)}`;
+      await call(`${base}/onetimeproducts/${sku}?${q}`, { method: 'PATCH', data: body });
+      await call(`${base}/onetimeproducts/${sku}/purchaseOptions:batchUpdateStates`, { method: 'POST',
+        data: { requests: [{ activatePurchaseOptionRequest: { packageName: PKG, productId: sku, purchaseOptionId: 'buy' } }] } });
+      console.log('OK', sku, '$' + usd, configs.length + ' countries'); ok++;
+    } catch (e) { console.log('FAIL', sku, e.message.slice(0, 300)); }
   }
   console.log(ok === PACKS.length ? 'ALL_PRODUCTS_OK' : `DONE ${ok}/${PACKS.length}`);
 })().catch(e => { console.log('ERROR', e.message); process.exit(1); });
