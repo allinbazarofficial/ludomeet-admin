@@ -580,6 +580,13 @@ const handlers = {
     if (!(await tryStart(r))) throw err('NO_COINS');
   },
 
+  // Google Play coin purchase: the server checks it with Google and adds the coins once.
+  async iapVerify(uid, m) {
+    const product = String(m.product || ''), token = String(m.token || '');
+    const res = await store.iapVerify(uid, product, token);
+    send(uid, { t: 'iapOk', product, token, ...res });
+  },
+
   // Diamonds -> coins (rate from the admin panel). toTrading: a seller's trading coins.
   async exchange(uid, m) {
     const d = Math.floor(Number(m.diamonds));

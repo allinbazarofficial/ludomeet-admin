@@ -201,6 +201,26 @@ const total = () => [...store.users.values()].reduce((s, u) => s + u.coins, 0);
   a.send({ t: 'bg', on: false }); a.send({ t: 'leave' }); await a.wait('over', 10000);
   console.log('notifications ok');
 
+  // 11) Google Play coin purchase: added once, token can't be reused by others
+  {
+    const before = store.users.get('a').coins;
+    a.send({ t: 'iapVerify', product: 'coins_10k', token: 'ok-tok-1' });
+    const r1 = await a.wait('iapOk');
+    assert.strictEqual(r1.coins, 10500);
+    assert.strictEqual(store.users.get('a').coins, before + 10500);
+    a.send({ t: 'iapVerify', product: 'coins_10k', token: 'ok-tok-1' });
+    const r2 = await a.wait('iapOk');
+    assert.strictEqual(r2.coins, 0); assert.ok(r2.already);
+    assert.strictEqual(store.users.get('a').coins, before + 10500);
+    b.send({ t: 'iapVerify', product: 'coins_10k', token: 'ok-tok-1' });
+    assert.strictEqual((await b.wait('error')).code, 'USED');
+    a.send({ t: 'iapVerify', product: 'coins_999', token: 'ok-x' });
+    assert.strictEqual((await a.wait('error')).code, 'BAD_PRODUCT');
+    a.send({ t: 'iapVerify', product: 'coins_20k', token: 'pend-1' });
+    assert.strictEqual((await a.wait('error')).code, 'PENDING');
+    console.log('google play purchase ok');
+  }
+
   // 11) no lock left open
   assert.equal([...store.locks.values()].filter(l => l.status === 'locked').length, 0);
   console.log('ALL TESTS PASSED; daily stats', JSON.stringify(store.stats));

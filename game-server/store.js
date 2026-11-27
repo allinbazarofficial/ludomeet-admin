@@ -35,6 +35,23 @@ const DEFAULTS = {
 
 const id = () => crypto.randomBytes(10).toString('hex');
 
+// Google Play coin packs: product id -> [coins, bonus]. Must match the
+// products in Play Console and the packs in the app's shop.
+const PACKAGE = 'com.ludomeet.app';
+const PACKS = {
+  coins_10k: [10000, 500], coins_20k: [20000, 1000], coins_50k: [50000, 3000],
+  coins_70k: [70000, 4200], coins_100k: [100000, 7000], coins_200k: [200000, 16000],
+  coins_300k: [300000, 27000], coins_500k: [500000, 50000], coins_1m: [1000000, 120000],
+  coins_1_5m: [1500000, 210000],
+};
+const tokenKey = token => crypto.createHash('sha256').update(token).digest('hex');
+// The app tags each purchase with this, so a token can't be claimed by another account.
+const accountTag = uid => crypto.createHash('sha256').update('lm:' + uid).digest('hex').slice(0, 64);
+function checkIap(productId, token) {
+  if (!PACKS[productId]) throw err('BAD_PRODUCT');
+  if (!token || token.length > 4096) throw err('BAD_TOKEN');
+}
+
 // Day key in Bangladesh time (UTC+6), day changes at 12 midnight BD.
 function bdDay(t = Date.now()) {
   return new Date(t + 6 * 3600 * 1000).toISOString().slice(0, 10);
@@ -67,6 +84,19 @@ function memoryStore() {
     async saveBotState(st) { this.bot = st; },
     async botStreak(uid) { return this.streaks.get(uid) || 0; },
     trades: [],
+    iap: new Map(),
+    // Test stand-in for Google: tokens starting "ok" are paid, "pend" pending.
+    async iapVerify(uid, productId, token) {
+      checkIap(productId, token);
+      const k = tokenKey(token); const prev = this.iap.get(k);
+      if (prev && prev.uid !== uid) throw err('USED');
+      if (prev) return { coins: 0, already: true, balance: user(uid).coins };
+      if (token.startsWith('pend')) throw err('PENDING');
+      if (!token.startsWith('ok')) throw err('NOT_PAID');
+      const [c, b] = PACKS[productId]; const u = user(uid);
+      u.coins += c + b; this.iap.set(k, { uid, productId });
+      return { coins: c + b, balance: u.coins };
+    },
     async exchange(uid, diamonds, toTrading) {
       const u = user(uid); const per = config.exchangePer100k;
       if (!(diamonds >= 10000) || (u.diamonds || 0) < diamonds) { const e = new Error('NO_DIAMONDS'); e.code = 'NO_DIAMONDS'; throw e; }
@@ -151,6 +181,25 @@ function firestoreStore(keyFile) {
   const db = admin.firestore();
   const FV = admin.firestore.FieldValue;
   let cache = null, cacheAt = 0, botCache = null;
+
+  // Google Play Developer API, signed in with the same service account.
+  const { GoogleAuth } = require('google-auth-library');
+  const playAuth = new GoogleAuth({ keyFile, scopes: ['https://www.googleapis.com/auth/androidpublisher'] });
+  const playUrl = (productId, token) => `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}`;
+  async function playGet(productId, token) {
+    const client = await playAuth.getClient();
+    try { return (await client.request({ url: playUrl(productId, token) })).data; }
+    catch (e) {
+      const st = e.response && e.response.status;
+      console.log('play get', st, e.message);
+      if (st === 400 || st === 404 || st === 410) throw err('NOT_PAID');
+      throw err('PLAY_ERROR');
+    }
+  }
+  async function playConsume(productId, token) {
+    const client = await playAuth.getClient();
+    await client.request({ url: playUrl(productId, token) + ':consume', method: 'POST' });
+  }
 
   return {
     kind: 'firestore',
@@ -351,6 +400,43 @@ function firestoreStore(keyFile) {
     async botStreak(uid) { return ((await db.collection('gameBot').doc('state').collection('players').doc(uid).get()).data() || {}).streak || 0; },
     async setBotStreak(uid, n) { await db.collection('gameBot').doc('state').collection('players').doc(uid).set({ streak: n, at: FV.serverTimestamp() }); },
 
+    // ---- Google Play coin purchase: check with Google, add coins once, then consume
+    async iapVerify(uid, productId, token) {
+      checkIap(productId, token);
+      const oref = db.collection('iapOrders').doc(tokenKey(token));
+      const prev = (await oref.get()).data();
+      if (prev && prev.uid !== uid) throw err('USED');
+      if (prev && prev.credited) {
+        playConsume(productId, token).catch(() => {});
+        return { coins: 0, already: true };
+      }
+      const p = await playGet(productId, token);
+      if (p.purchaseState === 2) throw err('PENDING');
+      if (p.purchaseState !== 0) throw err('NOT_PAID');
+      if (p.obfuscatedExternalAccountId && p.obfuscatedExternalAccountId !== accountTag(uid)) throw err('USED');
+      const [c, b] = PACKS[productId];
+      const total = c + b;
+      const test = p.purchaseType === 0;
+      const res = await db.runTransaction(async tx => {
+        const o = (await tx.get(oref)).data();
+        if (o && o.credited) return { coins: 0, already: true };
+        const ref = db.collection('users').doc(uid);
+        const u = (await tx.get(ref)).data() || {};
+        tx.update(ref, { coins: FV.increment(total), updatedAt: FV.serverTimestamp() });
+        tx.set(ref.collection('coinLog').doc(), { type: 'purchase', amount: total, balance: (u.coins || 0) + total,
+          note: `Google Play ${productId}${test ? ' (test)' : ''}`, ref: p.orderId || '', at: FV.serverTimestamp() });
+        tx.set(oref, { uid, productId, orderId: p.orderId || '', coins: c, bonus: b, test, credited: true,
+          country: p.regionCode || '', at: FV.serverTimestamp() });
+        if (!test) {
+          tx.set(db.collection('iapStats').doc(bdDay()), { day: bdDay(), orders: FV.increment(1), coins: FV.increment(total),
+            byProduct: { [productId]: FV.increment(1) } }, { merge: true });
+        }
+        return { coins: total, balance: (u.coins || 0) + total };
+      });
+      playConsume(productId, token).catch(e => console.log('consume', productId, e.message));
+      return res;
+    },
+
     // ---- diamonds -> coins (own wallet, or trading coins for a seller)
     async exchange(uid, diamonds, toTrading) {
       const cfg = await this.config();
@@ -427,4 +513,4 @@ function firestoreStore(keyFile) {
   };
 }
 
-module.exports = { memoryStore, firestoreStore, DEFAULTS, bdDay };
+module.exports = { memoryStore, firestoreStore, DEFAULTS, bdDay, PACKS, accountTag };
