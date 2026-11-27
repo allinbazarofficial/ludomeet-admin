@@ -583,7 +583,11 @@ const handlers = {
   // Google Play coin purchase: the server checks it with Google and adds the coins once.
   async iapVerify(uid, m) {
     const product = String(m.product || ''), token = String(m.token || '');
-    const res = await store.iapVerify(uid, product, token);
+    log('iap try', uid, product, token.slice(0, 12));
+    let res;
+    try { res = await store.iapVerify(uid, product, token); }
+    catch (e) { log('iap fail', uid, product, e.code || e.message); throw e; }
+    log('iap ok', uid, product, res.coins, res.already ? 'already' : '');
     send(uid, { t: 'iapOk', product, token, ...res });
   },
 
