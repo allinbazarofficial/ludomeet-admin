@@ -363,6 +363,13 @@ function setLang(l){LANG=l;try{localStorage.setItem("adm_lang",l)}catch(e){}docu
  document.querySelectorAll(".lang b").forEach(b=>b.classList.toggle("on",b.dataset.l===l))}
 document.querySelectorAll(".lang b").forEach(b=>b.onclick=()=>setLang(b.dataset.l));
 // In-page dialogs (browser pop-ups are blocked in some browsers, which made actions silently do nothing).
+/* Reject reason: pick a ready reason (shown to the user in English) or write one. */
+const REJECT_REASONS=[["Fake or edited screenshot","ভুয়া বা এডিট করা স্ক্রিনশট"],["Payment not received","টাকা আসেনি"],["Wrong amount paid","ভুল পরিমাণ পাঠানো হয়েছে"],["Paid to the wrong account","ভুল অ্যাকাউন্টে পাঠানো হয়েছে"],["Fake or wrong ID","ভুয়া বা ভুল আইডি"],["Screenshot not clear","স্ক্রিনশট পরিষ্কার না"]];
+function dlgReason(){return new Promise(res=>{const o=document.createElement("div");o.className="dlg";
+ o.innerHTML=`<div class="dbox"><div class="dmsg" style="font-weight:800">বাতিলের কারণ বেছে নিন (ইউজার অ্যাপে দেখবে)</div><div style="display:grid;gap:8px;margin-top:12px">${REJECT_REASONS.map(([en,bn],i)=>`<label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="radio" name="rr" value="${i}" ${i===0?"checked":""}> <span><b>${bn}</b><br><span class="muted" style="font-size:12px">${en}</span></span></label>`).join("")}<label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="radio" name="rr" value="x"> <span><b>অন্য কারণ লিখুন</b></span></label><input class="inp" id="rrx" placeholder="Write the reason (English)" style="width:100%"></div><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-n>বাতিল</button><button class="btn r" data-y>রিজেক্ট করুন</button></div></div>`;
+ document.body.appendChild(o);const x=o.querySelector("#rrx");x.oninput=()=>{o.querySelector('input[value="x"]').checked=true};
+ const done=v=>{o.remove();res(v)};o.querySelector("[data-n]").onclick=()=>done(null);
+ o.querySelector("[data-y]").onclick=()=>{const v=o.querySelector('input[name="rr"]:checked').value;if(v==="x"){const t=x.value.trim();if(!t){x.focus();return}done(t)}else done(REJECT_REASONS[+v][0])}})}
 function dlg(msg,opt={}){return new Promise(res=>{const o=document.createElement("div");o.className="dlg";
  o.innerHTML=`<div class="dbox"><div class="dmsg"></div>${opt.input?'<input class="inp" style="width:100%;margin-top:12px">':''}<div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-n>${T("বাতিল")}</button><button class="btn o" data-y>${T("ঠিক আছে")}</button></div></div>`;
  o.querySelector(".dmsg").textContent=T(msg);const i=o.querySelector("input");if(i)i.value=opt.def??"";document.body.appendChild(o);(i||o.querySelector("[data-y]")).focus();
@@ -973,7 +980,7 @@ async function deposits(){
   document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>userProfile(b.dataset.up));
   const decide=async(id,ok)=>{const a=rows.find(r=>r.id===id).data();let reason="";
    if(ok){if(!await dlg(`${a.name}-এর $${fmt(a.amount)} ডিপোজিট অনুমোদন করবেন?\nসে "${a.roleName}" পদ আর ${fmt(a.coins)} কয়েন পাবে।`))return}
-   else{reason=await dlgp("বাতিলের কারণ লিখুন (ইউজার দেখবে):","Payment not found");if(reason===null)return}
+   else{reason=await dlgReason();if(reason===null)return}
    try{const b=writeBatch(db);b.update(doc(db,"deposits",id),{status:ok?"approved":"rejected",decidedAt:serverTimestamp(),decidedBy:auth.currentUser.email,...(ok?{}:{reason})});
     if(ok){const us=await getDoc(doc(db,"users",a.uid));const r=new Set(us.data()?.roles||[]);r.add(a.role);const roles=[...r];
      const amt=Number(a.coins)||0,ud=us.data()||{};
